@@ -13,6 +13,8 @@ dist-ssr
 *.local
 .wrangler
 .dev.vars
+.env
+.vscode
 
 functions/**/*.js
 
