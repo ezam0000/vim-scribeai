@@ -34,6 +34,7 @@ function App() {
 	useEffect(() => {
 		if (encounter) {
 			vimOs.hub.setActivationStatus('ENABLED');
+			// vimOs.hub.setActivationStatus('DISABLED');
       vimOs.hub.setDynamicAppSize('CLASSIC');
 		} else {
 			vimOs.hub.setActivationStatus('DISABLED');

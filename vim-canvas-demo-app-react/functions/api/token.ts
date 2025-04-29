@@ -1,5 +1,7 @@
-import { parseJwt } from "@cfworker/jwt";
-import { Env } from "../context-env";
+import { parseJwt } from '@cfworker/jwt';
+import { Env } from '../context-env';
+
+const API_BASE_URL = 'https://api-devs-8a32c93f7e2d.herokuapp.com';
 
 async function getToken(context, code: string, client_secret: string) {
   return fetch(
@@ -83,17 +85,46 @@ async function isAuthorized(
   }
 }
 
-async function isUserEligibleToMyApp({ email, vimUserId, organization }) {
-  // add in supabase check?
-  // make a new VIM db
-  // make vimUsers table?
-  // columns: id, vimUserId, email, status (trial, paid, inactive), created_at
-  // sql automation: check status at 30 days after creation, if status = trial, set to inactive
+async function isUserEligibleToMyApp({
+	email,
+	vimUserId,
+	organization,
+}: {
+	email: string;
+	vimUserId: string;
+	organization: string;
+}) {
+	// check vimUserId as query in api call
+	// build url:
+	const url = new URL('/api/vim/check_user_is_eligible', API_BASE_URL);
+	url.searchParams.set('vimUserId', vimUserId);
+	if (email) url.searchParams.set('email', email);
+	// if (email) url.searchParams.set('email', email);
+	// just doing this console log because we aren't using organization rn and i dont want to throw an error
+	console.log(organization);
 
-  // need logic to check new users
-  // how do we handle new user signup, what is their user flow?
-  // how can we capture a VIM signup?
+	const response = await fetch(url.toString(), {
+		method: 'GET',
+		headers: {
+			'Content-Type': 'application/json',
+		},
+	});
+	console.log(response);
 
-  console.info(`User ${email}, ${vimUserId} of organization ${organization} is eligible to my app.`);
-  return true;
+	if (!response.ok) {
+		console.error('User not eligible', response.status);
+		return false;
+	}
+	const { eligible } = await response.json<{ eligible: boolean }>();
+	console.log('eligible:', eligible);
+	return eligible;
+
+	// sql automation: check status at 30 days after creation, if status = trial, set to inactive
+
+	// need logic to check new users
+	// first time login, create 30 day trial
+	// how do we handle new user signup, what is their user flow?
+	// how can we capture a VIM signup?x` 
+
+	// return true;
 }
