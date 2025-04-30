@@ -99,9 +99,7 @@ async function isUserEligibleToMyApp({
 	const url = new URL('/api/vim/check_user_is_eligible', API_BASE_URL);
 	url.searchParams.set('vimUserId', vimUserId);
 	if (email) url.searchParams.set('email', email);
-	// if (email) url.searchParams.set('email', email);
-	// just doing this console log because we aren't using organization rn and i dont want to throw an error
-	console.log(organization);
+	if (organization) url.searchParams.set('org', organization);
 
 	const response = await fetch(url.toString(), {
 		method: 'GET',
@@ -109,22 +107,12 @@ async function isUserEligibleToMyApp({
 			'Content-Type': 'application/json',
 		},
 	});
-	console.log(response);
 
 	if (!response.ok) {
 		console.error('User not eligible', response.status);
 		return false;
 	}
 	const { eligible } = await response.json<{ eligible: boolean }>();
-	console.log('eligible:', eligible);
+	// console.log('eligible:', eligible);
 	return eligible;
-
-	// sql automation: check status at 30 days after creation, if status = trial, set to inactive
-
-	// need logic to check new users
-	// first time login, create 30 day trial
-	// how do we handle new user signup, what is their user flow?
-	// how can we capture a VIM signup?x` 
-
-	// return true;
 }
