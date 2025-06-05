@@ -8,8 +8,8 @@ export default defineConfig({
     proxy: {
       // Proxy API requests to the ScribeAI server.
       // Remove the rewrite rule so that the "/api" prefix is preserved.
-      '/api': {
-        target: 'https://api-unique-stg-1048c00a084a.herokuapp.com',
+      "/api": {
+        target: "https://api-scribeai-31058533dd54.herokuapp.com",
         changeOrigin: true,
         secure: false,
         // Removed: rewrite: (path) => path.replace(/^\/api/, ''),
@@ -21,4 +21,4 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-}); 
+});

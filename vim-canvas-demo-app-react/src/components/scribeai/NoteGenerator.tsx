@@ -8,7 +8,7 @@ import { useFormContext } from "react-hook-form";
 const SCRIBEAI_API_KEY = import.meta.env.VITE_SCRIBEAI_API_KEY as string;
 
 // Update to the correct API base URL from the documentation
-const API_BASE_URL = "https://api-devs-8a32c93f7e2d.herokuapp.com";
+const API_BASE_URL = "https://api-scribeai-31058533dd54.herokuapp.com";
 
 const NOTE_TYPES = [
   { value: "soap", label: "SOAP Note" },
@@ -53,7 +53,7 @@ export const NoteGenerator = () => {
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
-  
+
   // Try to get form context - will be available if component is used within the encounter form
   let formContext: ReturnType<typeof useFormContext<FormInputs>> | null = null;
   try {
@@ -69,137 +69,200 @@ export const NoteGenerator = () => {
       objective: {},
       assessment: {},
       plan: {},
-      patientInstructions: {}
+      patientInstructions: {},
     };
-    
+
     // Simple parsing based on section headers
     const sections = note.split(/\n(?=[A-Z]+:)/);
-    
+
     for (const section of sections) {
-      if (section.startsWith("SUBJECTIVE:") || section.includes("\nSUBJECTIVE:")) {
+      if (
+        section.startsWith("SUBJECTIVE:") ||
+        section.includes("\nSUBJECTIVE:")
+      ) {
         const content = section.replace(/.*SUBJECTIVE:\s*/s, "").trim();
-        
+
         // Try to extract chief complaint
         const ccMatch = content.match(/Chief Complaint:([^\n]+)/i);
         if (ccMatch) {
           parsed.subjective.chiefComplaint = ccMatch[1].trim();
         }
-        
+
         // Try to extract HPI
-        const hpiMatch = content.match(/History of Present Illness:([^]*?)(?=\n[A-Z][a-z]+:|$)/i);
+        const hpiMatch = content.match(
+          /History of Present Illness:([^]*?)(?=\n[A-Z][a-z]+:|$)/i
+        );
         if (hpiMatch) {
           parsed.subjective.historyOfPresentIllness = hpiMatch[1].trim();
         }
-        
+
         // Try to extract ROS
-        const rosMatch = content.match(/Review of Systems:([^]*?)(?=\n[A-Z][a-z]+:|$)/i);
+        const rosMatch = content.match(
+          /Review of Systems:([^]*?)(?=\n[A-Z][a-z]+:|$)/i
+        );
         if (rosMatch) {
           parsed.subjective.reviewOfSystems = rosMatch[1].trim();
         }
-        
+
         // Set general notes if specific sections weren't found
-        if (!parsed.subjective.chiefComplaint && !parsed.subjective.historyOfPresentIllness && !parsed.subjective.reviewOfSystems) {
+        if (
+          !parsed.subjective.chiefComplaint &&
+          !parsed.subjective.historyOfPresentIllness &&
+          !parsed.subjective.reviewOfSystems
+        ) {
           parsed.subjective.generalNotes = content;
         }
-      } 
-      else if (section.startsWith("OBJECTIVE:") || section.includes("\nOBJECTIVE:")) {
+      } else if (
+        section.startsWith("OBJECTIVE:") ||
+        section.includes("\nOBJECTIVE:")
+      ) {
         const content = section.replace(/.*OBJECTIVE:\s*/s, "").trim();
-        
+
         // Try to extract physical exam
-        const peMatch = content.match(/Physical Examination:([^]*?)(?=\n[A-Z][a-z]+:|$)/i);
+        const peMatch = content.match(
+          /Physical Examination:([^]*?)(?=\n[A-Z][a-z]+:|$)/i
+        );
         if (peMatch) {
           parsed.objective.physicalExam = peMatch[1].trim();
         }
-        
+
         // Set general notes
-        parsed.objective.generalNotes = peMatch ? content.replace(/Physical Examination:([^]*?)(?=\n[A-Z][a-z]+:|$)/i, "").trim() : content;
-      } 
-      else if (section.startsWith("ASSESSMENT:") || section.includes("\nASSESSMENT:")) {
+        parsed.objective.generalNotes = peMatch
+          ? content
+              .replace(/Physical Examination:([^]*?)(?=\n[A-Z][a-z]+:|$)/i, "")
+              .trim()
+          : content;
+      } else if (
+        section.startsWith("ASSESSMENT:") ||
+        section.includes("\nASSESSMENT:")
+      ) {
         const content = section.replace(/.*ASSESSMENT:\s*/s, "").trim();
-        
+
         // Try to extract diagnoses
-        const diagnosesMatch = content.match(/Diagnoses:([^]*?)(?=\n[A-Z][a-z]+:|$)/i);
+        const diagnosesMatch = content.match(
+          /Diagnoses:([^]*?)(?=\n[A-Z][a-z]+:|$)/i
+        );
         if (diagnosesMatch) {
           const diagnosesText = diagnosesMatch[1].trim();
-          parsed.assessment.diagnoses = diagnosesText.split(/\n/).map(d => d.trim()).filter(d => d);
+          parsed.assessment.diagnoses = diagnosesText
+            .split(/\n/)
+            .map((d) => d.trim())
+            .filter((d) => d);
         }
-        
+
         parsed.assessment.generalNotes = content;
-      } 
-      else if (section.startsWith("PLAN:") || section.includes("\nPLAN:")) {
+      } else if (section.startsWith("PLAN:") || section.includes("\nPLAN:")) {
         const content = section.replace(/.*PLAN:\s*/s, "").trim();
-        
+
         // Try to extract procedures
-        const proceduresMatch = content.match(/Procedures:([^]*?)(?=\n[A-Z][a-z]+:|$)/i);
+        const proceduresMatch = content.match(
+          /Procedures:([^]*?)(?=\n[A-Z][a-z]+:|$)/i
+        );
         if (proceduresMatch) {
           const proceduresText = proceduresMatch[1].trim();
-          parsed.plan.procedures = proceduresText.split(/\n/).map(p => p.trim()).filter(p => p);
+          parsed.plan.procedures = proceduresText
+            .split(/\n/)
+            .map((p) => p.trim())
+            .filter((p) => p);
         }
-        
+
         parsed.plan.generalNotes = content;
-      } 
-      else if (section.startsWith("PATIENT INSTRUCTIONS:") || section.includes("\nPATIENT INSTRUCTIONS:")) {
-        parsed.patientInstructions.generalNotes = section.replace(/.*PATIENT INSTRUCTIONS:\s*/s, "").trim();
+      } else if (
+        section.startsWith("PATIENT INSTRUCTIONS:") ||
+        section.includes("\nPATIENT INSTRUCTIONS:")
+      ) {
+        parsed.patientInstructions.generalNotes = section
+          .replace(/.*PATIENT INSTRUCTIONS:\s*/s, "")
+          .trim();
       }
     }
-    
+
     return parsed;
   };
 
   // Apply the parsed note to the form
   const applyParsedNote = () => {
     if (!parsedNote || !formContext) {
-      toast({ 
-        variant: "destructive", 
-        title: "Cannot apply note", 
-        description: "Either no note is generated or the form context is not available." 
+      toast({
+        variant: "destructive",
+        title: "Cannot apply note",
+        description:
+          "Either no note is generated or the form context is not available.",
       });
       return;
     }
-    
+
     const { setValue } = formContext;
-    
+
     // Set values in the form
     if (parsedNote.subjective.generalNotes) {
-      setValue("subjectiveGeneralNotes", parsedNote.subjective.generalNotes, { shouldDirty: true });
+      setValue("subjectiveGeneralNotes", parsedNote.subjective.generalNotes, {
+        shouldDirty: true,
+      });
     }
-    
+
     if (parsedNote.subjective.chiefComplaint) {
-      setValue("subjectiveChiefComplaint", parsedNote.subjective.chiefComplaint, { shouldDirty: true });
+      setValue(
+        "subjectiveChiefComplaint",
+        parsedNote.subjective.chiefComplaint,
+        { shouldDirty: true }
+      );
     }
-    
+
     if (parsedNote.subjective.historyOfPresentIllness) {
-      setValue("subjectiveHistoryOfPresentIllness", parsedNote.subjective.historyOfPresentIllness, { shouldDirty: true });
+      setValue(
+        "subjectiveHistoryOfPresentIllness",
+        parsedNote.subjective.historyOfPresentIllness,
+        { shouldDirty: true }
+      );
     }
-    
+
     if (parsedNote.subjective.reviewOfSystems) {
-      setValue("subjectiveReviewOfSystems", parsedNote.subjective.reviewOfSystems, { shouldDirty: true });
+      setValue(
+        "subjectiveReviewOfSystems",
+        parsedNote.subjective.reviewOfSystems,
+        { shouldDirty: true }
+      );
     }
-    
+
     if (parsedNote.objective.generalNotes) {
-      setValue("objectiveGeneralNotes", parsedNote.objective.generalNotes, { shouldDirty: true });
+      setValue("objectiveGeneralNotes", parsedNote.objective.generalNotes, {
+        shouldDirty: true,
+      });
     }
-    
+
     if (parsedNote.objective.physicalExam) {
-      setValue("objectivePhysicalExamNotes", parsedNote.objective.physicalExam, { shouldDirty: true });
+      setValue(
+        "objectivePhysicalExamNotes",
+        parsedNote.objective.physicalExam,
+        { shouldDirty: true }
+      );
     }
-    
+
     if (parsedNote.assessment.generalNotes) {
-      setValue("assessmentGeneralNotes", parsedNote.assessment.generalNotes, { shouldDirty: true });
+      setValue("assessmentGeneralNotes", parsedNote.assessment.generalNotes, {
+        shouldDirty: true,
+      });
     }
-    
+
     if (parsedNote.plan.generalNotes) {
-      setValue("planGeneralNotes", parsedNote.plan.generalNotes, { shouldDirty: true });
+      setValue("planGeneralNotes", parsedNote.plan.generalNotes, {
+        shouldDirty: true,
+      });
     }
-    
+
     if (parsedNote.patientInstructions.generalNotes) {
-      setValue("patientInstructionsGeneralNotes", parsedNote.patientInstructions.generalNotes, { shouldDirty: true });
+      setValue(
+        "patientInstructionsGeneralNotes",
+        parsedNote.patientInstructions.generalNotes,
+        { shouldDirty: true }
+      );
     }
-    
-    toast({ 
-      variant: "default", 
-      title: "Note applied", 
-      description: "The generated note has been applied to the form fields." 
+
+    toast({
+      variant: "default",
+      title: "Note applied",
+      description: "The generated note has been applied to the form fields.",
     });
   };
 
@@ -210,14 +273,14 @@ export const NoteGenerator = () => {
     setUploading(true);
     try {
       const jwtToken = SCRIBEAI_API_KEY;
-      
+
       const formData = new FormData();
       formData.append("audioFile", file);
 
       const response = await fetch(`${API_BASE_URL}/api/transcribe-file`, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${jwtToken}`
+          Authorization: `Bearer ${jwtToken}`,
         },
         body: formData,
       });
@@ -226,19 +289,23 @@ export const NoteGenerator = () => {
         throw new Error(`File transcription failed: ${errorDetail}`);
       }
       const data = await response.json();
-      
+
       // Extract the new transcript text
       let newTranscript = data.transcript || data.transcriptText || "";
-      
+
       // Append the new transcript to the existing one with proper formatting
-      setTranscript(prevTranscript => {
+      setTranscript((prevTranscript) => {
         if (!prevTranscript) return newTranscript;
         return `${prevTranscript}\n\n--- New Transcription ---\n${newTranscript}`;
       });
-      
+
       toast({ variant: "default", title: "File transcription successful!" });
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Error with file transcription", description: error.message });
+      toast({
+        variant: "destructive",
+        title: "Error with file transcription",
+        description: error.message,
+      });
     } finally {
       setUploading(false);
     }
@@ -250,7 +317,7 @@ export const NoteGenerator = () => {
       // Stop recording
       setIsRecording(false); // Set this first to prevent multiple clicks
       toast({ variant: "default", title: "Stopping recording..." });
-      
+
       if (mediaRecorderRef.current) {
         try {
           // Stop the media recorder
@@ -258,10 +325,11 @@ export const NoteGenerator = () => {
           // We'll let the onstop handler handle the rest
         } catch (error) {
           console.error("Error stopping recording:", error);
-          toast({ 
-            variant: "destructive", 
-            title: "Error stopping recording", 
-            description: error instanceof Error ? error.message : "Unknown error" 
+          toast({
+            variant: "destructive",
+            title: "Error stopping recording",
+            description:
+              error instanceof Error ? error.message : "Unknown error",
           });
         }
       }
@@ -269,32 +337,32 @@ export const NoteGenerator = () => {
       try {
         // Clear previous recording data
         recordedChunksRef.current = []; // Clear the ref
-        
+
         // Start a new recording
-        const stream = await navigator.mediaDevices.getUserMedia({ 
+        const stream = await navigator.mediaDevices.getUserMedia({
           audio: {
             echoCancellation: true,
             noiseSuppression: true,
-            autoGainControl: true
-          } 
+            autoGainControl: true,
+          },
         });
-        
+
         // Choose the best available format
         let recorderOptions: MediaRecorderOptions | undefined;
-        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-          recorderOptions = { mimeType: 'audio/webm;codecs=opus' };
-        } else if (MediaRecorder.isTypeSupported('audio/webm')) {
-          recorderOptions = { mimeType: 'audio/webm' };
-        } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
-          recorderOptions = { mimeType: 'audio/ogg' };
+        if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
+          recorderOptions = { mimeType: "audio/webm;codecs=opus" };
+        } else if (MediaRecorder.isTypeSupported("audio/webm")) {
+          recorderOptions = { mimeType: "audio/webm" };
+        } else if (MediaRecorder.isTypeSupported("audio/ogg")) {
+          recorderOptions = { mimeType: "audio/ogg" };
         }
-        
-        const mediaRecorder = recorderOptions 
+
+        const mediaRecorder = recorderOptions
           ? new MediaRecorder(stream, recorderOptions)
           : new MediaRecorder(stream);
-        
+
         mediaRecorderRef.current = mediaRecorder;
-        
+
         // Collect audio chunks - store in ref directly
         mediaRecorder.ondataavailable = (e) => {
           if (e.data.size > 0) {
@@ -302,61 +370,69 @@ export const NoteGenerator = () => {
             recordedChunksRef.current.push(e.data);
           }
         };
-        
+
         // When recording stops, upload the audio
         mediaRecorder.onstop = async () => {
           console.log("MediaRecorder stopped, processing chunks...");
-          
+
           // Stop all audio tracks
-          stream.getTracks().forEach(track => track.stop());
-          
+          stream.getTracks().forEach((track) => track.stop());
+
           // Use the ref instead of state
           const currentChunks = [...recordedChunksRef.current];
           console.log(`Processing ${currentChunks.length} audio chunks`);
-          
+
           if (currentChunks.length === 0) {
-            toast({ 
-              variant: "destructive", 
-              title: "Recording error", 
-              description: "No audio data was captured. Please try again." 
+            toast({
+              variant: "destructive",
+              title: "Recording error",
+              description: "No audio data was captured. Please try again.",
             });
             return;
           }
-          
+
           try {
             // Combine chunks into a single blob
-            const audioBlob = new Blob(currentChunks, { 
-              type: mediaRecorder.mimeType || 'audio/webm' 
+            const audioBlob = new Blob(currentChunks, {
+              type: mediaRecorder.mimeType || "audio/webm",
             });
-            
-            console.log("Recording completed, blob size:", audioBlob.size, "type:", audioBlob.type);
-            
+
+            console.log(
+              "Recording completed, blob size:",
+              audioBlob.size,
+              "type:",
+              audioBlob.type
+            );
+
             if (audioBlob.size < 100) {
-              toast({ 
-                variant: "destructive", 
-                title: "Recording too short", 
-                description: "The recording was too short to process. Please try again." 
+              toast({
+                variant: "destructive",
+                title: "Recording too short",
+                description:
+                  "The recording was too short to process. Please try again.",
               });
               return;
             }
-            
+
             // Try to use a more compatible format if possible
-            let fileType = 'webm';
-            let mimeType = mediaRecorder.mimeType || 'audio/webm';
-            
-            if (mimeType.includes('ogg')) {
-              fileType = 'ogg';
-            } else if (mimeType.includes('mp4') || mimeType.includes('mp4a')) {
-              fileType = 'mp4';
+            let fileType = "webm";
+            let mimeType = mediaRecorder.mimeType || "audio/webm";
+
+            if (mimeType.includes("ogg")) {
+              fileType = "ogg";
+            } else if (mimeType.includes("mp4") || mimeType.includes("mp4a")) {
+              fileType = "mp4";
             }
-            
+
             // Create a File object from the Blob with a more descriptive name
             const audioFile = new File(
-              [audioBlob], 
-              `recording-${new Date().toISOString().replace(/[:.]/g, '-')}.${fileType}`, 
+              [audioBlob],
+              `recording-${new Date()
+                .toISOString()
+                .replace(/[:.]/g, "-")}.${fileType}`,
               { type: mimeType }
             );
-            
+
             // Upload the file using the existing upload function
             await uploadAudioFile(audioFile);
           } catch (error) {
@@ -364,21 +440,22 @@ export const NoteGenerator = () => {
             toast({
               variant: "destructive",
               title: "Error processing recording",
-              description: error instanceof Error ? error.message : "Unknown error"
+              description:
+                error instanceof Error ? error.message : "Unknown error",
             });
           }
         };
-        
+
         // Start recording with smaller chunks for more frequent updates
         mediaRecorder.start(500);
         setIsRecording(true);
         toast({ variant: "default", title: "Recording started" });
       } catch (error: any) {
         console.error("Error starting recording:", error);
-        toast({ 
-          variant: "destructive", 
-          title: "Error starting recording", 
-          description: error.message 
+        toast({
+          variant: "destructive",
+          title: "Error starting recording",
+          description: error.message,
         });
       }
     }
@@ -389,32 +466,35 @@ export const NoteGenerator = () => {
     setUploading(true);
     try {
       const jwtToken = SCRIBEAI_API_KEY;
-      
+
       const formData = new FormData();
       formData.append("audioFile", file);
 
-      toast({ variant: "default", title: "Uploading and transcribing recording..." });
-      
+      toast({
+        variant: "default",
+        title: "Uploading and transcribing recording...",
+      });
+
       // Log the file details for debugging
       console.log("Uploading file:", file.name, file.type, file.size);
-      
+
       const response = await fetch(`${API_BASE_URL}/api/transcribe-file`, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${jwtToken}`
+          Authorization: `Bearer ${jwtToken}`,
         },
         body: formData,
       });
-      
+
       if (!response.ok) {
         const errorDetail = await response.text();
         console.error("Transcription error response:", errorDetail);
         throw new Error(`File transcription failed: ${errorDetail}`);
       }
-      
+
       const data = await response.json();
       console.log("Transcription response:", data);
-      
+
       // Extract the new transcript text
       let newTranscript = "";
       if (data.transcript) {
@@ -425,20 +505,23 @@ export const NoteGenerator = () => {
         console.warn("No transcript found in response:", data);
         newTranscript = "Transcription completed but no text was returned.";
       }
-      
+
       // Append the new transcript to the existing one with proper formatting
-      setTranscript(prevTranscript => {
+      setTranscript((prevTranscript) => {
         if (!prevTranscript) return newTranscript;
         return `${prevTranscript}\n\n--- New Transcription ---\n${newTranscript}`;
       });
-      
-      toast({ variant: "default", title: "Recording transcribed successfully!" });
+
+      toast({
+        variant: "default",
+        title: "Recording transcribed successfully!",
+      });
     } catch (error: any) {
       console.error("Transcription error:", error);
-      toast({ 
-        variant: "destructive", 
-        title: "Error transcribing recording", 
-        description: error.message 
+      toast({
+        variant: "destructive",
+        title: "Error transcribing recording",
+        description: error.message,
       });
     } finally {
       setUploading(false);
@@ -449,7 +532,7 @@ export const NoteGenerator = () => {
   const generateNote = async () => {
     try {
       const jwtToken = SCRIBEAI_API_KEY;
-      
+
       let endpoint = "";
       switch (selectedNoteType) {
         case "soap":
@@ -467,9 +550,9 @@ export const NoteGenerator = () => {
         default:
           throw new Error("Invalid note type");
       }
-      
+
       console.log("Posting note to:", endpoint);
-      
+
       // Based on the HAR file, the API expects this structure
       const payload = {
         transcriptText: transcript,
@@ -477,48 +560,52 @@ export const NoteGenerator = () => {
           name: "", // These can be populated from VIM if available
           dob: "",
           chiefComplaint: "",
-          visitDate: new Date().toISOString().split('T')[0],
-          weight: null
+          visitDate: new Date().toISOString().split("T")[0],
+          weight: null,
         },
         customNotes,
         selectedICDCodes: [],
         selectedCPTCodes: [],
         suggestedICDCodes: [],
-        suggestedCPTCodes: []
+        suggestedCPTCodes: [],
       };
-      
+
       const response = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${jwtToken}`
+          Authorization: `Bearer ${jwtToken}`,
         },
         body: JSON.stringify(payload),
       });
-      
+
       if (!response.ok) {
         const errorDetail = await response.text();
         throw new Error(`Note generation failed: ${errorDetail}`);
       }
-      
+
       const data = await response.json();
       const noteText = data.note || JSON.stringify(data, null, 2);
       setGeneratedNote(noteText);
-      
+
       // Parse the generated note
       const parsed = parseGeneratedNote(noteText);
       setParsedNote(parsed);
-      
+
       toast({ variant: "default", title: "Note generated successfully!" });
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Error generating note", description: error.message });
+      toast({
+        variant: "destructive",
+        title: "Error generating note",
+        description: error.message,
+      });
     }
   };
 
   return (
     <div className="p-4 border rounded-md my-4">
       <h3 className="font-bold mb-2">ScribeAI Note Generator</h3>
-      
+
       <div className="mb-2">
         <label className="block mb-1">Select Note Type</label>
         <select
@@ -533,7 +620,7 @@ export const NoteGenerator = () => {
           ))}
         </select>
       </div>
-      
+
       <div className="mb-2">
         <label className="block mb-1">Upload Audio File</label>
         <input
@@ -543,13 +630,15 @@ export const NoteGenerator = () => {
           disabled={uploading || isRecording}
           className="p-2 border rounded w-full"
         />
-        {uploading && <p className="text-sm text-gray-500">Uploading and transcribing...</p>}
+        {uploading && (
+          <p className="text-sm text-gray-500">Uploading and transcribing...</p>
+        )}
       </div>
-      
+
       <div className="mb-2">
         <div className="flex space-x-2">
-          <Button 
-            size="sm" 
+          <Button
+            size="sm"
             onClick={handleRecording}
             variant={isRecording ? "destructive" : "default"}
             disabled={uploading}
@@ -557,9 +646,11 @@ export const NoteGenerator = () => {
             {isRecording ? "Stop Recording" : "Start Recording"}
           </Button>
         </div>
-        {isRecording && <p className="text-sm text-red-500 mt-1">Recording in progress...</p>}
+        {isRecording && (
+          <p className="text-sm text-red-500 mt-1">Recording in progress...</p>
+        )}
       </div>
-      
+
       <div className="mb-2">
         <label className="block mb-1">Custom Notes</label>
         <textarea
@@ -570,7 +661,7 @@ export const NoteGenerator = () => {
           placeholder="Enter any additional notes or context..."
         />
       </div>
-      
+
       <div className="mb-2">
         <label className="block mb-1">Transcript</label>
         <textarea
@@ -581,19 +672,19 @@ export const NoteGenerator = () => {
           placeholder="Transcript will appear here or type notes manually..."
         />
       </div>
-      
+
       <div className="mb-4 flex space-x-2">
         <Button variant="default" onClick={generateNote}>
           Generate Note
         </Button>
-        
+
         {formContext && parsedNote && (
           <Button variant="outline" onClick={applyParsedNote}>
             Apply to Encounter Form
           </Button>
         )}
       </div>
-      
+
       {/* Display the generated note */}
       {generatedNote && (
         <div className="p-4 border rounded-md mt-4 bg-gray-50">
@@ -601,7 +692,7 @@ export const NoteGenerator = () => {
           <pre className="whitespace-pre-wrap">{generatedNote}</pre>
         </div>
       )}
-      
+
       {/* Display parsed sections preview */}
       {parsedNote && (
         <div className="p-4 border rounded-md mt-4 bg-blue-50">
@@ -611,14 +702,22 @@ export const NoteGenerator = () => {
               <h5 className="font-medium">Subjective</h5>
               {parsedNote.subjective.chiefComplaint && (
                 <div className="mb-2">
-                  <span className="font-medium">Chief Complaint:</span> 
-                  <p className="text-sm">{parsedNote.subjective.chiefComplaint}</p>
+                  <span className="font-medium">Chief Complaint:</span>
+                  <p className="text-sm">
+                    {parsedNote.subjective.chiefComplaint}
+                  </p>
                 </div>
               )}
               {parsedNote.subjective.historyOfPresentIllness && (
                 <div className="mb-2">
                   <span className="font-medium">HPI:</span>
-                  <p className="text-sm">{parsedNote.subjective.historyOfPresentIllness.substring(0, 100)}...</p>
+                  <p className="text-sm">
+                    {parsedNote.subjective.historyOfPresentIllness.substring(
+                      0,
+                      100
+                    )}
+                    ...
+                  </p>
                 </div>
               )}
             </div>
@@ -627,20 +726,26 @@ export const NoteGenerator = () => {
               {parsedNote.objective.physicalExam && (
                 <div className="mb-2">
                   <span className="font-medium">Physical Exam:</span>
-                  <p className="text-sm">{parsedNote.objective.physicalExam.substring(0, 100)}...</p>
+                  <p className="text-sm">
+                    {parsedNote.objective.physicalExam.substring(0, 100)}...
+                  </p>
                 </div>
               )}
             </div>
             <div>
               <h5 className="font-medium">Assessment</h5>
               {parsedNote.assessment.generalNotes && (
-                <p className="text-sm">{parsedNote.assessment.generalNotes.substring(0, 100)}...</p>
+                <p className="text-sm">
+                  {parsedNote.assessment.generalNotes.substring(0, 100)}...
+                </p>
               )}
             </div>
             <div>
               <h5 className="font-medium">Plan</h5>
               {parsedNote.plan.generalNotes && (
-                <p className="text-sm">{parsedNote.plan.generalNotes.substring(0, 100)}...</p>
+                <p className="text-sm">
+                  {parsedNote.plan.generalNotes.substring(0, 100)}...
+                </p>
               )}
             </div>
           </div>
@@ -648,4 +753,4 @@ export const NoteGenerator = () => {
       )}
     </div>
   );
-}; 
+};

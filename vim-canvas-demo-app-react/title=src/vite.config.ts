@@ -12,8 +12,8 @@ export default defineConfig({
     proxy: disableApiProxy
       ? {}
       : {
-          '/api': {
-            target: 'https://api-devs-8a32c93f7e2d.herokuapp.com',
+          "/api": {
+            target: "https://api-scribeai-31058533dd54.herokuapp.com",
             changeOrigin: true,
             secure: false,
           },
@@ -24,4 +24,4 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-}); 
+});

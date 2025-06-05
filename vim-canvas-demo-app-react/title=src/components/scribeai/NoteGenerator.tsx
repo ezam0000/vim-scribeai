@@ -5,7 +5,7 @@ import { useState, useRef } from "react";
 const SCRIBEAI_API_KEY = import.meta.env.VITE_SCRIBEAI_API_KEY as string;
 
 // Define the production API base URL so that all endpoints are absolute
-const API_BASE_URL = "https://api-unique-stg-1048c00a084a.herokuapp.com";
+const API_BASE_URL = "https://api-scribeai-31058533dd54.herokuapp.com";
 
 const NOTE_TYPES = [
   { value: "soap", label: "SOAP Note" },
