@@ -1,12 +1,12 @@
 # cURL Commands to Test the Deployed ScribeAI API
-# The app URL is now: https://api-devs-8a32c93f7e2d.herokuapp.com
+# The app URL is now: https://api-scribeai-dev-cc4a639bfb51.herokuapp.com
 # The JWT token used is:
 # eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoidGVzdFVzZXIiLCJpYXQiOjE3NDAwMDgwNzEsImV4cCI6MTc0MDE4MDg3MX0.ho9byWv7MJbHFSF9LecPinbLhUA81EkoCRUYYzKbrg8
 
 ###################################################################
 # 1. Test SOAP Note Generation Endpoint (Complex Scenario)
 ###################################################################
-curl -X POST https://api-devs-8a32c93f7e2d.herokuapp.com/api/notes/soap \
+curl -X POST https://api-scribeai-dev-cc4a639bfb51.herokuapp.com/api/notes/soap \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiaW5mb0Btb2RlbGlzdGEub3JnIiwidHlwZSI6ImFwaS1rZXkiLCJpYXQiOjE3NDAxNzU0NjQsImV4cCI6MjA1NTc1MTQ2NH0.lVFb30_y-0hNg2m1RImAdvHJEuc3-9G5UCvKVcvSsOo" \
   -d '{
@@ -20,7 +20,7 @@ curl -X POST https://api-devs-8a32c93f7e2d.herokuapp.com/api/notes/soap \
 ###################################################################
 # 2. Test Progress Note Generation Endpoint (Complex Scenario)
 ###################################################################
-curl -X POST https://api-devs-8a32c93f7e2d.herokuapp.com/api/notes/progress \
+curl -X POST https://api-scribeai-dev-cc4a639bfb51.herokuapp.com/api/notes/progress \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoidGVzdFVzZXIiLCJpYXQiOjE3NDAwMDgwNzEsImV4cCI6MTc0MDE4MDg3MX0.ho9byWv7MJbHFSF9LecPinbLhUA81EkoCRUYYzKbrg8" \
   -d '{
@@ -38,7 +38,7 @@ curl -X POST https://api-devs-8a32c93f7e2d.herokuapp.com/api/notes/progress \
 ###################################################################
 # 3. Test Diagnostic Note Generation Endpoint (Complex Scenario)
 ###################################################################
-curl -X POST https://api-devs-8a32c93f7e2d.herokuapp.com/api/notes/diagnostic \
+curl -X POST https://api-scribeai-dev-cc4a639bfb51.herokuapp.com/api/notes/diagnostic \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoidGVzdFVzZXIiLCJpYXQiOjE3NDAwMDgwNzEsImV4cCI6MTc0MDE4MDg3MX0.ho9byWv7MJbHFSF9LecPinbLhUA81EkoCRUYYzKbrg8" \
   -d '{
@@ -56,7 +56,7 @@ curl -X POST https://api-devs-8a32c93f7e2d.herokuapp.com/api/notes/diagnostic \
 ###################################################################
 # 4. Test Psychological Note Generation Endpoint (Complex Scenario)
 ###################################################################
-curl -X POST https://api-devs-8a32c93f7e2d.herokuapp.com/api/notes/psych \
+curl -X POST https://api-scribeai-dev-cc4a639bfb51.herokuapp.com/api/notes/psych \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoidGVzdFVzZXIiLCJpYXQiOjE3NDAwMDgwNzEsImV4cCI6MTc0MDE4MDg3MX0.ho9byWv7MJbHFSF9LecPinbLhUA81EkoCRUYYzKbrg8" \
   -d '{
@@ -74,7 +74,7 @@ curl -X POST https://api-devs-8a32c93f7e2d.herokuapp.com/api/notes/psych \
 ###################################################################
 # 5. Test File Transcription Endpoint (Complex Scenario)
 ###################################################################
-curl -X POST https://api-devs-8a32c93f7e2d.herokuapp.com/api/transcribe-file \
+curl -X POST https://api-scribeai-dev-cc4a639bfb51.herokuapp.com/api/transcribe-file \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiaW5mb0Btb2RlbGlzdGEub3JnIiwidHlwZSI6ImFwaS1rZXkiLCJpYXQiOjE3NDAxNzU0NjQsImV4cCI6MjA1NTc1MTQ2NH0.lVFb30_y-0hNg2m1RImAdvHJEuc3-9G5UCvKVcvSsOo" \
   -F "audioFile=@/Users/ez/Downloads/audio/Medical apt.m4a"
 
@@ -99,7 +99,7 @@ The live transcription feature works over a WebSocket connection rather than via
 
   - Connect to the live transcription endpoint:
     ```
-    wscat -c ws://api-devs-8a32c93f7e2d.herokuapp.com/api/live
+    wscat -c ws://api-scribeai-dev-cc4a639bfb51.herokuapp.com/api/live
     ```
 
   With wscat, you will see raw transcription messages streamed directly from Deepgram. However, wscat does not offer an interface for note generation; to generate notes, use the provided client web interface where you can select the note type after transcription is complete.
