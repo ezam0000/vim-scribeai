@@ -8,7 +8,7 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const { user, session, loading, token, userId } = useSupabaseSessionSync();
+  const { user, loading, token, userId } = useSupabaseSessionSync();
   const [error, setError] = useState<string | null>(null);
 
   // Login function
