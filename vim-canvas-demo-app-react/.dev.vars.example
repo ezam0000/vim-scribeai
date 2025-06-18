@@ -1,3 +1,8 @@
 CLIENT_ID=your_client_id_here
 CLIENT_SECRET=your_client_secret_here
-REDIRECT_URL=http://localhost:8788 
+REDIRECT_URL=http://localhost:8788
+
+# Supabase Configuration is hardcoded in src/utils/supabase.ts (same as ScribeAIHealthie)
+
+# ScribeAI API Configuration
+VITE_SCRIBEAI_API_KEY=your_scribeai_api_key_here
