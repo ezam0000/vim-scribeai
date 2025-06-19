@@ -37,6 +37,8 @@ import {
   getScribeAIWebSocket,
   WebSocketTranscriptEvent,
 } from "@/utils/scribeaiWebSocketUtils";
+import { useVimEncounters } from "@/utils/vimNotesUtils";
+import { useVimOSEncounter } from "@/hooks/useEncounter";
 
 // Constants for API interaction
 const SCRIBEAI_WS_URL =
@@ -82,8 +84,24 @@ export const ScribeAIIntegration = () => {
   const [formFieldsInfo, setFormFieldsInfo] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Database saving state
+  const [currentVimEncounterId, setCurrentVimEncounterId] = useState<
+    string | null
+  >(null);
+  const [accumulatedTranscript, setAccumulatedTranscript] = useState("");
+  const transcriptSaveIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSavedLengthRef = useRef(0);
+
   // Get the singleton instance of the WebSocket
   const webSocket = getScribeAIWebSocket();
+
+  // Get VIM encounter context and database utilities
+  const { encounter } = useVimOSEncounter();
+  const {
+    createNewVimEncounter,
+    saveVimEncounterTranscript,
+    saveVimEncounterNote,
+  } = useVimEncounters();
 
   // Initialize WebSocket and handle events
   useEffect(() => {
@@ -97,6 +115,11 @@ export const ScribeAIIntegration = () => {
         case "disconnected":
           setConnected(false);
           setProcessingStatus("Disconnected");
+          // Clear progressive saving interval
+          if (transcriptSaveIntervalRef.current) {
+            clearInterval(transcriptSaveIntervalRef.current);
+            transcriptSaveIntervalRef.current = null;
+          }
           break;
 
         case "error":
@@ -106,7 +129,16 @@ export const ScribeAIIntegration = () => {
 
         case "partial":
           if (event.text && !isPaused) {
-            setTranscript((prev) => `${prev} ${event.text}`);
+            setTranscript((prev) => {
+              const newTranscript = prev.trim()
+                ? `${prev} ${event.text}`
+                : event.text!;
+
+              // Also update accumulated transcript for saving
+              setAccumulatedTranscript(newTranscript);
+
+              return newTranscript;
+            });
           }
           break;
       }
@@ -116,8 +148,11 @@ export const ScribeAIIntegration = () => {
 
     return () => {
       webSocket.removeTranscriptEvent(handleTranscriptEvent);
+      if (transcriptSaveIntervalRef.current) {
+        clearInterval(transcriptSaveIntervalRef.current);
+      }
     };
-  }, [isPaused, webSocket]);
+  }, [isPaused, webSocket, currentVimEncounterId]);
 
   // Get form context to update the encounter form fields
   const { setValue, getValues, formState } = useNoteFormContext();
@@ -170,6 +205,41 @@ export const ScribeAIIntegration = () => {
       return () => clearTimeout(timer);
     }
   }, [parsedNote, autoApply]);
+
+  // Progressive transcript saving function
+  const saveTranscriptProgressively = async () => {
+    if (!currentVimEncounterId || !accumulatedTranscript.trim()) {
+      return;
+    }
+
+    // Only save if transcript has grown significantly since last save
+    const currentLength = accumulatedTranscript.length;
+    const lastSavedLength = lastSavedLengthRef.current;
+
+    // Save if we have at least 50 new characters or it's been substantial growth
+    if (currentLength - lastSavedLength > 50) {
+      try {
+        await saveVimEncounterTranscript(
+          currentVimEncounterId,
+          accumulatedTranscript,
+          {
+            confidence: 0.9,
+            duration: Math.floor(Date.now() / 1000), // approximate duration
+            source: "live_recording",
+            timestamp: new Date().toISOString(),
+            custom_notes: customNotes || undefined,
+          }
+        );
+
+        lastSavedLengthRef.current = currentLength;
+        console.log(
+          `📝 Transcript saved progressively: ${currentLength} characters`
+        );
+      } catch (error) {
+        console.error("Failed to save transcript progressively:", error);
+      }
+    }
+  };
 
   // Debug function to check available form fields
   const checkFormFields = () => {
@@ -462,6 +532,9 @@ export const ScribeAIIntegration = () => {
         console.log("VIM API Response:", data);
       }
 
+      let finalNoteText = "";
+      let finalParsedNote: ParsedNote | null = null;
+
       // Handle the VIM note structure
       if (data.structuredContent) {
         // Parse the structured content directly
@@ -524,6 +597,7 @@ export const ScribeAIIntegration = () => {
             "\n\n";
         }
 
+        finalNoteText = noteText;
         setGeneratedNote(noteText);
 
         // Create a parsed note object directly from the structured content
@@ -559,6 +633,7 @@ export const ScribeAIIntegration = () => {
           },
         };
 
+        finalParsedNote = parsed;
         setParsedNote(parsed);
       } else {
         // Fallback to text parsing if structured content is not available
@@ -581,11 +656,63 @@ export const ScribeAIIntegration = () => {
             "PLAN:\nPlan pending.";
         }
 
+        finalNoteText = noteText;
         setGeneratedNote(noteText);
 
         // Parse the note text to extract sections
         const parsed = parseGeneratedNote(noteText);
+        finalParsedNote = parsed;
         setParsedNote(parsed);
+      }
+
+      // Save the generated note to database if we have an encounter
+      if (currentVimEncounterId && finalNoteText) {
+        try {
+          console.log("🔄 Attempting to save generated note to database...");
+          const result = await saveVimEncounterNote(
+            currentVimEncounterId,
+            finalNoteText,
+            {
+              generated_at: new Date().toISOString(),
+              note_type: "vim",
+              custom_notes: customNotes || undefined,
+              sections: finalParsedNote
+                ? {
+                    subjective: finalParsedNote.subjective.generalNotes,
+                    objective: finalParsedNote.objective.generalNotes,
+                    assessment: finalParsedNote.assessment.generalNotes,
+                    plan: finalParsedNote.plan.generalNotes,
+                    patientInstructions:
+                      finalParsedNote.patientInstructions.generalNotes,
+                  }
+                : undefined,
+            }
+          );
+
+          if (result) {
+            console.log("💾 Generated note saved to database successfully");
+          } else {
+            console.error(
+              "❌ Failed to save generated note - no result returned"
+            );
+          }
+        } catch (error) {
+          console.error("❌ Failed to save note to database:", error);
+          // Show error to user for debugging
+          toast({
+            variant: "destructive",
+            title: "Database save error",
+            description: `Failed to save note: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          });
+        }
+      } else {
+        console.log("⚠️ Not saving note:", {
+          hasEncounterId: !!currentVimEncounterId,
+          hasNoteText: !!finalNoteText,
+          encounterId: currentVimEncounterId,
+        });
       }
 
       toast({
@@ -854,15 +981,48 @@ export const ScribeAIIntegration = () => {
 
   // Start recording
   const startRecording = async () => {
-    setTranscript("");
-    setIsPaused(false);
-    setProcessingStatus("Connecting...");
-    const success = await webSocket.startRecording();
-    if (success) {
-      setIsRecording(true);
-      setProcessingStatus("Recording - speak now");
-    } else {
-      setProcessingStatus("Failed to start recording");
+    try {
+      setProcessingStatus("Creating encounter...");
+
+      // Create new vim encounter in database
+      const vimEncounter = await createNewVimEncounter({
+        encounter_id: encounter?.id || null,
+        patient_id: encounter?.patient?.id || null,
+      });
+
+      if (!vimEncounter) {
+        setProcessingStatus("Failed to create encounter");
+        return;
+      }
+
+      setCurrentVimEncounterId(vimEncounter.id);
+      setProcessingStatus("Starting recording...");
+
+      // Clear transcript for new recording
+      setTranscript("");
+      setAccumulatedTranscript("");
+      lastSavedLengthRef.current = 0;
+      setIsPaused(false);
+
+      // Clear note state for new encounter
+      setGeneratedNote("");
+      setParsedNote(null);
+
+      const success = await webSocket.startRecording();
+      if (success) {
+        setIsRecording(true);
+        setProcessingStatus("Recording - speak now");
+
+        // Start progressive transcript saving interval (every 3 seconds)
+        transcriptSaveIntervalRef.current = setInterval(() => {
+          saveTranscriptProgressively();
+        }, 3000);
+      } else {
+        setProcessingStatus("Failed to start recording");
+      }
+    } catch (error) {
+      console.error("Error starting recording:", error);
+      setProcessingStatus("Recording failed");
     }
   };
 
@@ -870,18 +1030,43 @@ export const ScribeAIIntegration = () => {
   const pauseRecording = () => {
     setIsPaused(true);
     setProcessingStatus("Recording paused");
+
+    // Clear progressive saving interval
+    if (transcriptSaveIntervalRef.current) {
+      clearInterval(transcriptSaveIntervalRef.current);
+      transcriptSaveIntervalRef.current = null;
+    }
+
+    // Save current transcript one more time
+    if (currentVimEncounterId && accumulatedTranscript.trim()) {
+      saveTranscriptProgressively();
+    }
+
     webSocket.stopRecording();
   };
 
   // Resume recording
   const resumeRecording = async () => {
-    setIsPaused(false);
-    setProcessingStatus("Resuming recording...");
-    const success = await webSocket.startRecording();
-    if (success) {
-      setProcessingStatus("Recording resumed - speak now");
-    } else {
-      setProcessingStatus("Failed to resume recording");
+    try {
+      setProcessingStatus("Resuming recording...");
+      setIsPaused(false);
+
+      const success = await webSocket.startRecording();
+      if (success) {
+        setProcessingStatus("Recording resumed - speak now");
+
+        // Restart progressive transcript saving interval
+        transcriptSaveIntervalRef.current = setInterval(() => {
+          saveTranscriptProgressively();
+        }, 3000);
+      } else {
+        setProcessingStatus("Failed to resume recording");
+        setIsPaused(true);
+      }
+    } catch (error) {
+      console.error("Error resuming recording:", error);
+      setProcessingStatus("Resume failed");
+      setIsPaused(true);
     }
   };
 
@@ -892,6 +1077,17 @@ export const ScribeAIIntegration = () => {
     setIsPaused(false);
     setConnected(false);
     setProcessingStatus("Recording stopped");
+
+    // Clear progressive saving interval
+    if (transcriptSaveIntervalRef.current) {
+      clearInterval(transcriptSaveIntervalRef.current);
+      transcriptSaveIntervalRef.current = null;
+    }
+
+    // Save final transcript one more time
+    if (currentVimEncounterId && accumulatedTranscript.trim()) {
+      saveTranscriptProgressively();
+    }
   };
 
   // Helper function to upload the audio file
@@ -931,10 +1127,40 @@ export const ScribeAIIntegration = () => {
         newTranscript = "Transcription completed but no text was returned.";
       }
 
+      // Create encounter for uploaded file if we don't have one
+      if (!currentVimEncounterId) {
+        const vimEncounter = await createNewVimEncounter({
+          encounter_id: encounter?.id || null,
+          patient_id: encounter?.patient?.id || null,
+        });
+
+        if (vimEncounter) {
+          setCurrentVimEncounterId(vimEncounter.id);
+        }
+      }
+
       // Append the new transcript to the existing one with proper formatting
       setTranscript((prevTranscript) => {
-        if (!prevTranscript) return newTranscript;
-        return `${prevTranscript}\n\n--- New Transcription ---\n${newTranscript}`;
+        const finalTranscript = prevTranscript
+          ? `${prevTranscript}\n\n--- New Transcription ---\n${newTranscript}`
+          : newTranscript;
+
+        // Save to database if we have an encounter
+        if (currentVimEncounterId) {
+          saveVimEncounterTranscript(currentVimEncounterId, finalTranscript, {
+            confidence: 0.9,
+            duration: 0,
+            source: "file_upload",
+            file_name: file.name,
+            file_size: file.size,
+            timestamp: new Date().toISOString(),
+            custom_notes: customNotes || undefined,
+          }).catch((error) => {
+            console.error("Failed to save uploaded transcript:", error);
+          });
+        }
+
+        return finalTranscript;
       });
 
       toast({
@@ -1105,6 +1331,14 @@ export const ScribeAIIntegration = () => {
           <span className="text-sm font-medium">
             {processingStatus || "Ready"}
           </span>
+
+          {/* Database Status Indicator */}
+          {currentVimEncounterId && (
+            <div className="ml-auto flex items-center gap-1 text-xs text-gray-600">
+              <SaveIcon className="w-3 h-3" />
+              <span>DB: {currentVimEncounterId.slice(-8)}</span>
+            </div>
+          )}
         </div>
 
         {/* Debug info */}
