@@ -9,6 +9,14 @@ import {
   ClipboardIcon,
   CheckIcon,
   BugIcon,
+  PauseIcon,
+  PlayIcon,
+  RefreshCwIcon,
+  SettingsIcon,
+  SaveIcon,
+  UploadIcon,
+  DownloadIcon,
+  XIcon,
 } from "lucide-react";
 import {
   EntitySectionTitle,
@@ -25,254 +33,14 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { SCRIBEAI_API_KEY, API_BASE_URL } from "@/config/env";
+import {
+  getScribeAIWebSocket,
+  WebSocketTranscriptEvent,
+} from "@/utils/scribeaiWebSocketUtils";
 
-// WebSocket utilities for real-time transcription
+// Constants for API interaction
 const SCRIBEAI_WS_URL =
   "wss://api-scribeai-31058533dd54.herokuapp.com/api/live";
-
-interface WebSocketTranscriptEvent {
-  type:
-    | "transcript"
-    | "partial"
-    | "final"
-    | "error"
-    | "connected"
-    | "disconnected";
-  text?: string;
-  confidence?: number;
-  error?: string;
-  metadata?: {
-    duration?: number;
-    timestamp?: string;
-    [key: string]: any;
-  };
-}
-
-class ScribeAIWebSocket {
-  private ws: WebSocket | null = null;
-  private isConnected = false;
-  private eventHandlers: ((event: WebSocketTranscriptEvent) => void)[] = [];
-
-  constructor() {
-    if (!SCRIBEAI_API_KEY) {
-      console.error("SCRIBEAI_API_KEY is required for WebSocket connection");
-    }
-  }
-
-  onTranscriptEvent(handler: (event: WebSocketTranscriptEvent) => void) {
-    this.eventHandlers.push(handler);
-  }
-
-  removeTranscriptEvent(handler: (event: WebSocketTranscriptEvent) => void) {
-    this.eventHandlers = this.eventHandlers.filter((h) => h !== handler);
-  }
-
-  private emitEvent(event: WebSocketTranscriptEvent) {
-    this.eventHandlers.forEach((handler) => {
-      try {
-        handler(event);
-      } catch (error) {
-        console.error("Error in transcript event handler:", error);
-      }
-    });
-  }
-
-  async connect(): Promise<boolean> {
-    if (this.isConnected) {
-      console.log("WebSocket already connected");
-      return true;
-    }
-
-    if (!SCRIBEAI_API_KEY) {
-      this.emitEvent({
-        type: "error",
-        error:
-          "ScribeAI API key not found. Please check your environment configuration.",
-      });
-      return false;
-    }
-
-    try {
-      console.log("🔗 Connecting to ScribeAI WebSocket...");
-
-      const wsUrlWithAuth = `${SCRIBEAI_WS_URL}?authorization=Bearer%20${encodeURIComponent(
-        SCRIBEAI_API_KEY
-      )}`;
-      console.log("🔗 WebSocket URL:", wsUrlWithAuth);
-      this.ws = new WebSocket(wsUrlWithAuth);
-
-      return new Promise((resolve) => {
-        if (!this.ws) {
-          resolve(false);
-          return;
-        }
-
-        this.ws.onopen = () => {
-          console.log("✅ WebSocket connected successfully!");
-
-          if (this.ws) {
-            const config = {
-              type: "config",
-              noteType: "soap",
-              customNotes: "",
-            };
-            console.log("📤 Sending configuration:", config);
-            this.ws.send(JSON.stringify(config));
-          }
-
-          this.isConnected = true;
-          this.emitEvent({ type: "connected" });
-          resolve(true);
-        };
-
-        this.ws.onmessage = (event) => {
-          try {
-            console.log("🔴 Raw WebSocket message received:", event.data);
-            const data = JSON.parse(event.data);
-            console.log("🔴 Parsed WebSocket data:", data);
-
-            if (data.channel && data.channel.alternatives) {
-              const transcript = data.channel.alternatives[0].transcript;
-              if (transcript) {
-                console.log("📝 Live transcript:", transcript);
-                this.emitEvent({
-                  type: "partial",
-                  text: transcript,
-                  confidence: data.channel.alternatives[0].confidence,
-                });
-              }
-            } else if (data.type === "error") {
-              console.log("❌ Received error from ScribeAI:", data);
-              this.emitEvent({
-                type: "error",
-                error: data.error || data.message,
-              });
-            }
-          } catch (error) {
-            console.error("Error parsing WebSocket message:", error);
-          }
-        };
-
-        this.ws.onerror = (error) => {
-          console.error("❌ WebSocket error:", error);
-          this.emitEvent({
-            type: "error",
-            error: "WebSocket connection failed",
-          });
-          resolve(false);
-        };
-
-        this.ws.onclose = (event) => {
-          console.log("❌ WebSocket disconnected:", event.code, event.reason);
-          this.isConnected = false;
-          this.emitEvent({ type: "disconnected" });
-        };
-      });
-    } catch (error) {
-      console.error("Failed to connect WebSocket:", error);
-      this.emitEvent({
-        type: "error",
-        error: "Failed to establish WebSocket connection",
-      });
-      return false;
-    }
-  }
-
-  async startStreaming(): Promise<boolean> {
-    console.log("🎤 Starting live audio streaming...");
-
-    // Connect to WebSocket first
-    const connected = await this.connect();
-    if (!connected) {
-      console.error("❌ Failed to connect WebSocket");
-      return false;
-    }
-
-    try {
-      // Get microphone stream
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          sampleRate: 16000,
-        },
-      });
-
-      // Create MediaRecorder for streaming (NOT for file creation)
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-          ? "audio/webm;codecs=opus"
-          : "audio/webm",
-      });
-
-      // Stream audio chunks directly to WebSocket
-      mediaRecorder.ondataavailable = (event) => {
-        if (
-          event.data.size > 0 &&
-          this.ws &&
-          this.ws.readyState === WebSocket.OPEN
-        ) {
-          console.log("📡 Streaming audio chunk:", event.data.size, "bytes");
-          this.ws.send(event.data);
-        }
-      };
-
-      // Start streaming with frequent chunks for real-time
-      mediaRecorder.start(100); // Send data every 100ms for maximum real-time
-
-      // Store references for cleanup
-      (this as any).currentStream = stream;
-      (this as any).currentRecorder = mediaRecorder;
-
-      console.log("✅ Live streaming started");
-      return true;
-    } catch (error) {
-      console.error("❌ Failed to start streaming:", error);
-      this.emitEvent({
-        type: "error",
-        error: "Failed to access microphone for streaming",
-      });
-      return false;
-    }
-  }
-
-  stopStreaming() {
-    console.log("🛑 Stopping live streaming...");
-
-    // Stop the recorder
-    if ((this as any).currentRecorder) {
-      (this as any).currentRecorder.stop();
-      (this as any).currentRecorder = null;
-    }
-
-    // Stop the stream
-    if ((this as any).currentStream) {
-      (this as any).currentStream
-        .getTracks()
-        .forEach((track: MediaStreamTrack) => track.stop());
-      (this as any).currentStream = null;
-    }
-
-    console.log("✅ Live streaming stopped");
-  }
-
-  disconnect() {
-    this.stopStreaming();
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
-    }
-    this.isConnected = false;
-  }
-
-  getStatus() {
-    return {
-      connected: this.isConnected,
-      streaming: !!(this as any).currentRecorder,
-    };
-  }
-}
 
 // Interface for parsed note sections
 interface ParsedNote {
@@ -305,6 +73,8 @@ export const ScribeAIIntegration = () => {
   const [parsedNote, setParsedNote] = useState<ParsedNote | null>(null);
   const [customNotes, setCustomNotes] = useState("");
   const [isRecording, setIsRecording] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [connected, setConnected] = useState(false);
   const [autoApply, _setAutoApply] = useState(false);
   const [isNotePreviewOpen, setIsNotePreviewOpen] = useState(false);
   const [processingStatus, setProcessingStatus] = useState<string | null>(null);
@@ -312,76 +82,42 @@ export const ScribeAIIntegration = () => {
   const [formFieldsInfo, setFormFieldsInfo] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // WebSocket instance
-  const webSocketRef = useRef<ScribeAIWebSocket | null>(null);
+  // Get the singleton instance of the WebSocket
+  const webSocket = getScribeAIWebSocket();
 
-  // Initialize WebSocket
+  // Initialize WebSocket and handle events
   useEffect(() => {
-    webSocketRef.current = new ScribeAIWebSocket();
-
     const handleTranscriptEvent = (event: WebSocketTranscriptEvent) => {
-      console.log("🔥 WebSocket Event Received:", event);
-
       switch (event.type) {
         case "connected":
-          console.log("✅ WebSocket connected for real-time transcription");
-          setProcessingStatus("🌐 Connected - ready for live transcription");
-          toast({
-            variant: "default",
-            title: "WebSocket Connected",
-            description: "Ready for live transcription",
-          });
+          setConnected(true);
+          setProcessingStatus("Connected - ready for live transcription");
           break;
 
         case "disconnected":
-          console.log("❌ WebSocket disconnected");
-          setProcessingStatus("⚠️ WebSocket disconnected");
+          setConnected(false);
+          setProcessingStatus("Disconnected");
           break;
 
         case "error":
-          console.error("❌ WebSocket error:", event.error);
-          setProcessingStatus(`❌ WebSocket Error: ${event.error}`);
-          toast({
-            variant: "destructive",
-            title: "WebSocket Error",
-            description: event.error || "Connection failed",
-          });
+          setProcessingStatus(`Error: ${event.error}`);
+          console.error("WebSocket error:", event.error);
           break;
 
         case "partial":
-          if (event.text) {
-            console.log("📝 Live transcript received:", event.text);
-            setTranscript((prev) => {
-              // For real-time streaming, accumulate text naturally
-              const newText = event.text!.trim();
-              if (!newText) return prev;
-
-              // If this is the first text or prev is empty, just use the new text
-              if (!prev.trim()) {
-                return newText;
-              }
-
-              // For continuous speech, add a space between segments
-              return `${prev} ${newText}`;
-            });
+          if (event.text && !isPaused) {
+            setTranscript((prev) => `${prev} ${event.text}`);
           }
           break;
-
-        case "final":
-          console.log("🏁 Final transcript received:", event.text);
-          break;
       }
     };
 
-    webSocketRef.current.onTranscriptEvent(handleTranscriptEvent);
+    webSocket.onTranscriptEvent(handleTranscriptEvent);
 
     return () => {
-      if (webSocketRef.current) {
-        webSocketRef.current.removeTranscriptEvent(handleTranscriptEvent);
-        webSocketRef.current.disconnect();
-      }
+      webSocket.removeTranscriptEvent(handleTranscriptEvent);
     };
-  }, []);
+  }, [isPaused, webSocket]);
 
   // Get form context to update the encounter form fields
   const { setValue, getValues, formState } = useNoteFormContext();
@@ -644,7 +380,7 @@ export const ScribeAIIntegration = () => {
         .replace(/\u2264/g, "<=") // Less than or equal to
         .replace(/\u2265/g, ">=") // Greater than or equal to
         // Replace non-ASCII characters with empty string
-        .replace(/[^\x00-\x7F]/g, "")
+        .replace(/[^\u0020-\u007E]/g, "")
         // Replace multiple spaces with a single space
         .replace(/\s+/g, " ")
         .trim()
@@ -654,7 +390,7 @@ export const ScribeAIIntegration = () => {
   // Check if text contains non-English characters
   const containsNonEnglishChars = (text: string | undefined): boolean => {
     if (!text) return false;
-    return /[^\x00-\x7F]/.test(text);
+    return /[^\u0020-\u007E]/.test(text);
   };
 
   // Generate VIM note using the ScribeAI API
@@ -863,12 +599,14 @@ export const ScribeAIIntegration = () => {
       // Open note preview
       setIsNotePreviewOpen(true);
       setProcessingStatus(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error generating note:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       toast({
         variant: "destructive",
         title: "Error generating note",
-        description: error.message,
+        description: errorMessage,
       });
       setProcessingStatus(null);
     }
@@ -1030,11 +768,15 @@ export const ScribeAIIntegration = () => {
         if (mapping.field in currentValues && mapping.content) {
           try {
             // Update the field
-            setValue(mapping.field as any, mapping.content, {
-              shouldDirty: true,
-              shouldValidate: true,
-              shouldTouch: true,
-            });
+            setValue(
+              mapping.field as keyof typeof currentValues,
+              mapping.content,
+              {
+                shouldDirty: true,
+                shouldValidate: true,
+                shouldTouch: true,
+              }
+            );
 
             // Add to list of updated fields
             updatedFields.push(mapping.label);
@@ -1061,11 +803,13 @@ export const ScribeAIIntegration = () => {
             "Could not update any form fields. The note is still available in the preview.",
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error applying note to form:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
 
       // Enhanced error logging for validation errors
-      if (error.message && error.message.includes("validation")) {
+      if (errorMessage && errorMessage.includes("validation")) {
         console.error("Validation error details:", JSON.stringify(error));
 
         if (debugMode) {
@@ -1089,8 +833,8 @@ export const ScribeAIIntegration = () => {
       }
       // Check for the specific validation error
       else if (
-        error.message &&
-        error.message.includes("No fields were specified in the update request")
+        errorMessage &&
+        errorMessage.includes("No fields were specified in the update request")
       ) {
         toast({
           variant: "default",
@@ -1102,62 +846,52 @@ export const ScribeAIIntegration = () => {
         toast({
           variant: "destructive",
           title: "Error applying note to form",
-          description: String(error),
+          description: errorMessage,
         });
       }
     }
   };
 
-  // Handle recording toggle
-  const handleRecording = async () => {
-    if (isRecording) {
-      // Stop live streaming
-      try {
-        if (webSocketRef.current) {
-          webSocketRef.current.stopStreaming();
-        }
-        setIsRecording(false);
-        setProcessingStatus(null);
-        toast({ variant: "default", title: "Live streaming stopped" });
-        console.log("✅ Live streaming stopped");
-      } catch (error) {
-        console.error("❌ Error stopping streaming:", error);
-        setIsRecording(false);
-        setProcessingStatus(null);
-      }
+  // Start recording
+  const startRecording = async () => {
+    setTranscript("");
+    setIsPaused(false);
+    setProcessingStatus("Connecting...");
+    const success = await webSocket.startRecording();
+    if (success) {
+      setIsRecording(true);
+      setProcessingStatus("Recording - speak now");
     } else {
-      // Start live streaming ONLY - no file recording at all
-      try {
-        setTranscript(""); // Clear previous transcript
-
-        if (!webSocketRef.current) {
-          throw new Error("WebSocket not initialized");
-        }
-
-        console.log("🎯 Starting live streaming...");
-        const success = await webSocketRef.current.startStreaming();
-        console.log("🎯 Streaming start result:", success);
-
-        if (success) {
-          setIsRecording(true);
-          setProcessingStatus("🎤 Live streaming - real-time transcription");
-          toast({ variant: "default", title: "Live streaming started" });
-          console.log("✅ Live streaming active");
-        } else {
-          throw new Error("Failed to start live streaming");
-        }
-      } catch (error) {
-        console.error("❌ Failed to start live streaming:", error);
-        toast({
-          variant: "destructive",
-          title: "Failed to start live streaming",
-          description:
-            error instanceof Error ? error.message : "Please try again",
-        });
-        setIsRecording(false);
-        setProcessingStatus(null);
-      }
+      setProcessingStatus("Failed to start recording");
     }
+  };
+
+  // Pause recording
+  const pauseRecording = () => {
+    setIsPaused(true);
+    setProcessingStatus("Recording paused");
+    webSocket.stopRecording();
+  };
+
+  // Resume recording
+  const resumeRecording = async () => {
+    setIsPaused(false);
+    setProcessingStatus("Resuming recording...");
+    const success = await webSocket.startRecording();
+    if (success) {
+      setProcessingStatus("Recording resumed - speak now");
+    } else {
+      setProcessingStatus("Failed to resume recording");
+    }
+  };
+
+  // Stop recording
+  const stopRecording = () => {
+    webSocket.disconnect();
+    setIsRecording(false);
+    setIsPaused(false);
+    setConnected(false);
+    setProcessingStatus("Recording stopped");
   };
 
   // Helper function to upload the audio file
@@ -1214,12 +948,14 @@ export const ScribeAIIntegration = () => {
       // if (newTranscript) {
       //   await generateNote();
       // }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Transcription error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       toast({
         variant: "destructive",
         title: "Error transcribing recording",
-        description: error.message,
+        description: errorMessage,
       });
       setProcessingStatus(null);
     } finally {
@@ -1263,24 +999,47 @@ export const ScribeAIIntegration = () => {
       <EntitySectionTitle title="ScribeAI Note Generator" />
       <EntitySectionContent>
         <div className="flex flex-wrap gap-2 mb-4 items-center">
-          <Button
-            variant={isRecording ? "destructive" : "outline"}
-            onClick={handleRecording}
-            disabled={uploading}
-            className="flex items-center"
-          >
-            {isRecording ? (
-              <>
+          {!isRecording ? (
+            <Button
+              variant="outline"
+              onClick={startRecording}
+              disabled={uploading}
+              className="flex items-center bg-green-600 text-white hover:bg-green-700"
+            >
+              <MicIcon className="mr-2 h-4 w-4" />
+              Start Recording
+            </Button>
+          ) : (
+            <>
+              {!isPaused ? (
+                <Button
+                  variant="outline"
+                  onClick={pauseRecording}
+                  className="flex items-center bg-yellow-500 text-white hover:bg-yellow-600"
+                >
+                  <PauseIcon className="mr-2 h-4 w-4" />
+                  Pause
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  onClick={resumeRecording}
+                  className="flex items-center bg-green-600 text-white hover:bg-green-700"
+                >
+                  <PlayIcon className="mr-2 h-4 w-4" />
+                  Resume
+                </Button>
+              )}
+              <Button
+                variant="destructive"
+                onClick={stopRecording}
+                className="flex items-center"
+              >
                 <SquareIcon className="mr-2 h-4 w-4" />
-                Stop Recording
-              </>
-            ) : (
-              <>
-                <MicIcon className="mr-2 h-4 w-4" />
-                Start Recording
-              </>
-            )}
-          </Button>
+                Stop
+              </Button>
+            </>
+          )}
 
           <Button
             variant="outline"
@@ -1331,11 +1090,22 @@ export const ScribeAIIntegration = () => {
           )}
         </div>
 
-        {processingStatus && (
-          <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded text-sm">
-            {processingStatus}
-          </div>
-        )}
+        {/* Status Display */}
+        <div className="flex items-center gap-2 mb-4 p-3 border rounded-md bg-gray-50">
+          {/* Status Icon */}
+          {connected ? (
+            uploading ? (
+              <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+            ) : (
+              <div className="w-3 h-3 rounded-full bg-green-500"></div>
+            )
+          ) : (
+            <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+          )}
+          <span className="text-sm font-medium">
+            {processingStatus || "Ready"}
+          </span>
+        </div>
 
         {/* Debug info */}
         {debugMode && formFieldsInfo && (
