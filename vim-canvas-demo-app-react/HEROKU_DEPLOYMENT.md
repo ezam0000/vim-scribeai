@@ -101,4 +101,13 @@ git push heroku main
 
 ## Submitting for Review on getvim.com
 
-After successful deployment, you can submit your application for review on getvim.com using the deployed Heroku URL. 
+After successful deployment, you can submit your application for review on getvim.com using the deployed Heroku URL.
+
+### Supabase Configuration
+
+- `VITE_SUPABASE_URL`: The URL for your Supabase project.
+- `VITE_SUPABASE_ANON_KEY`: The anonymous key for your Supabase project.
+
+## New Environment Variable
+
+- `VITE_API_BASE_URL`: The base URL for the ScribeAI API.

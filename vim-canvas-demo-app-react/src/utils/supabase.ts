@@ -1,9 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
+import { VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY } from "@/config/env";
 
 // Supabase configuration for ScribeAI Staging project (same as ScribeAIHealthie)
-const supabaseUrl = "https://kfdtyvcntmaopgfbuytb.supabase.co";
-const supabaseAnonKey =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZHR5dmNudG1hb3BnZmJ1eXRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDEyOTAzODQsImV4cCI6MjA1Njg2NjM4NH0.KaRU4o12cCPu1Tx3ESqzokxwv8XHcskqAgLgSs7M_so";
+const supabaseUrl = VITE_SUPABASE_URL;
+const supabaseAnonKey = VITE_SUPABASE_ANON_KEY;
 
 // Create and export the Supabase client
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {

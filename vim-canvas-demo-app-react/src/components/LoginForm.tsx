@@ -3,6 +3,7 @@ import { useAuth } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { SignupModal } from "./SignupModal";
 
 interface LoginFormProps {
   onLoginSuccess?: () => void;
@@ -12,6 +13,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showSignupModal, setShowSignupModal] = useState(false);
   const { login, error } = useAuth();
   const { toast } = useToast();
 
@@ -89,6 +91,25 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
           <div className="text-red-600 text-sm text-center mt-3">{error}</div>
         )}
       </form>
+
+      {/* Signup Section */}
+      <div className="text-center mt-6">
+        <p className="text-sm text-gray-600">
+          Don't have an account?{" "}
+          <button
+            onClick={() => setShowSignupModal(true)}
+            className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
+          >
+            Sign up for ScribeAI
+          </button>
+        </p>
+      </div>
+
+      {/* Signup Modal */}
+      <SignupModal
+        isOpen={showSignupModal}
+        onClose={() => setShowSignupModal(false)}
+      />
     </div>
   );
 };
