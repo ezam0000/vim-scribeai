@@ -31,14 +31,26 @@ if ! heroku whoami &> /dev/null; then
     exit 1
 fi
 
+# Run TypeScript check first
+echo -e "${BLUE}🔍 Running TypeScript check...${NC}"
+if ! npm run type-check &> /dev/null && ! npx tsc --noEmit &> /dev/null; then
+    echo -e "${RED}❌ TypeScript errors found! Fix them first:${NC}"
+    npx tsc --noEmit
+    exit 1
+fi
+echo -e "${GREEN}✅ TypeScript check passed${NC}"
+
 # Add all changes
 echo -e "${BLUE}📝 Adding changes...${NC}"
 git add .
 
 # Check if there are changes to commit
 if [ -n "$(git status --porcelain)" ]; then
-    # Commit with timestamp
-    commit_msg="Deploy $(date '+%Y-%m-%d %H:%M:%S')"
+    # Ask for custom commit message
+    read -p "Enter commit message (or press Enter for auto): " commit_msg
+    if [ -z "$commit_msg" ]; then
+        commit_msg="Deploy $(date '+%Y-%m-%d %H:%M:%S')"
+    fi
     echo -e "${BLUE}💾 Committing: $commit_msg${NC}"
     git commit -m "$commit_msg"
 else

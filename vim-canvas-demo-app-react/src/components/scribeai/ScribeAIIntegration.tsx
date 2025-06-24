@@ -981,8 +981,8 @@ export const ScribeAIIntegration = () => {
 
       // Create new vim encounter in database
       const vimEncounter = await createNewVimEncounter({
-        encounter_id: encounter?.identifiers?.ehrEncounterId || null,
-        patient_id: encounter?.patient?.identifiers?.ehrPatientId || null,
+        encounter_id: encounter?.identifiers?.ehrEncounterId || undefined,
+        patient_id: undefined, // Patient ID not available in current encounter structure
       });
 
       if (!vimEncounter) {
@@ -1125,8 +1125,8 @@ export const ScribeAIIntegration = () => {
       // Create encounter for uploaded file if we don't have one
       if (!currentVimEncounterId) {
         const vimEncounter = await createNewVimEncounter({
-          encounter_id: encounter?.identifiers?.ehrEncounterId || null,
-          patient_id: encounter?.patient?.identifiers?.ehrPatientId || null,
+          encounter_id: encounter?.identifiers?.ehrEncounterId || undefined,
+          patient_id: undefined, // Patient ID not available in current encounter structure
         });
 
         if (vimEncounter) {
