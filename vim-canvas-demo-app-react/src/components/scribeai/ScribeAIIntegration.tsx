@@ -11,12 +11,7 @@ import {
   BugIcon,
   PauseIcon,
   PlayIcon,
-  RefreshCwIcon,
-  SettingsIcon,
   SaveIcon,
-  UploadIcon,
-  DownloadIcon,
-  XIcon,
 } from "lucide-react";
 import {
   EntitySectionTitle,
@@ -41,8 +36,8 @@ import { useVimEncounters } from "@/utils/vimNotesUtils";
 import { useVimOSEncounter } from "@/hooks/useEncounter";
 
 // Constants for API interaction
-const SCRIBEAI_WS_URL =
-  "wss://api-scribeai-31058533dd54.herokuapp.com/api/live";
+// const SCRIBEAI_WS_URL =
+//   "wss://api-scribeai-31058533dd54.herokuapp.com/api/live";
 
 // Interface for parsed note sections
 interface ParsedNote {
@@ -986,8 +981,8 @@ export const ScribeAIIntegration = () => {
 
       // Create new vim encounter in database
       const vimEncounter = await createNewVimEncounter({
-        encounter_id: encounter?.id || null,
-        patient_id: encounter?.patient?.id || null,
+        encounter_id: encounter?.identifiers?.ehrEncounterId || null,
+        patient_id: encounter?.patient?.identifiers?.ehrPatientId || null,
       });
 
       if (!vimEncounter) {
@@ -1130,8 +1125,8 @@ export const ScribeAIIntegration = () => {
       // Create encounter for uploaded file if we don't have one
       if (!currentVimEncounterId) {
         const vimEncounter = await createNewVimEncounter({
-          encounter_id: encounter?.id || null,
-          patient_id: encounter?.patient?.id || null,
+          encounter_id: encounter?.identifiers?.ehrEncounterId || null,
+          patient_id: encounter?.patient?.identifiers?.ehrPatientId || null,
         });
 
         if (vimEncounter) {
