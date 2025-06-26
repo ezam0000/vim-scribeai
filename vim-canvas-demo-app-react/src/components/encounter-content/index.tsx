@@ -23,6 +23,7 @@ import { FormInputs, useNotesForm } from "./form";
 // import { EncounterPlan } from "./Plan";
 // import { EncounterSubjective } from "./Subjective";
 import { ScribeAIIntegration } from "../scribeai/ScribeAIIntegration";
+import { KeyPhraseManager } from "../KeyPhraseManager";
 
 export const EncounterContent = () => {
   const { toast } = useToast();
@@ -156,22 +157,22 @@ export const EncounterContent = () => {
     };
     // clean the payload and only if payload is NOT undefined, updateEncounter
     const cleanedPayload = removeUndefinedProperties(encounterPayload);
-    if (cleanedPayload){
+    if (cleanedPayload) {
       // console.log('updating encounter with', cleanedPayload)
       updateEncounter(cleanedPayload)
-      .then(() => {
-        toast({
-          variant: "default",
-          title: "Encounter notes updated!",
+        .then(() => {
+          toast({
+            variant: "default",
+            title: "Encounter notes updated!",
+          });
+        })
+        .catch((error) => {
+          toast({
+            variant: "destructive",
+            title: "Uh oh! Something went wrong.",
+            description: error ? JSON.stringify(error) : "An error occurred.",
+          });
         });
-      })
-      .catch((error) => {
-        toast({
-          variant: "destructive",
-          title: "Uh oh! Something went wrong.",
-          description: error ? JSON.stringify(error) : "An error occurred.",
-        });
-      });
     }
     methods.reset({
       subjectiveGeneralNotes: canUpdateNotes?.details.subjective?.generalNotes
@@ -235,9 +236,11 @@ export const EncounterContent = () => {
                 </Button>
                 */}
               </div>
-              
-              <ScribeAIIntegration />
-              
+
+              <div className="space-y-4">
+                <ScribeAIIntegration />
+                <KeyPhraseManager />
+              </div>
             </form>
           </FormProvider>
         </>

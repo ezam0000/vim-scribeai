@@ -31,9 +31,11 @@ import { SCRIBEAI_API_KEY, API_BASE_URL } from "@/config/env";
 import {
   getScribeAIWebSocket,
   WebSocketTranscriptEvent,
+  createTranscriptEventHandlerWithExpansion,
 } from "@/utils/scribeaiWebSocketUtils";
 import { useVimEncounters } from "@/utils/vimNotesUtils";
 import { useVimOSEncounter } from "@/hooks/useEncounter";
+import { useKeyPhrases } from "@/hooks/useKeyPhrases";
 
 // Constants for API interaction
 // const SCRIBEAI_WS_URL =
@@ -63,6 +65,7 @@ interface ParsedNote {
 }
 
 export const ScribeAIIntegration = () => {
+  console.log("🚀 ScribeAI component is mounting!");
   const { toast } = useToast();
   const [transcript, setTranscript] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -98,9 +101,27 @@ export const ScribeAIIntegration = () => {
     saveVimEncounterNote,
   } = useVimEncounters();
 
+  // Get keyphrases for expansion
+  const { keyPhraseMappings } = useKeyPhrases();
+
+  // Debug keyphrases loading
+  useEffect(() => {
+    console.log("🔑 Keyphrases loaded in ScribeAI:", {
+      count: Object.keys(keyPhraseMappings).length,
+      mappings: keyPhraseMappings,
+    });
+  }, [keyPhraseMappings]);
+
   // Initialize WebSocket and handle events
   useEffect(() => {
     const handleTranscriptEvent = (event: WebSocketTranscriptEvent) => {
+      console.log("📝 ScribeAI transcript event received:", {
+        type: event.type,
+        text: event.text,
+        isPaused,
+        hasKeyPhrases: Object.keys(keyPhraseMappings).length > 0,
+      });
+
       switch (event.type) {
         case "connected":
           setConnected(true);
@@ -124,6 +145,7 @@ export const ScribeAIIntegration = () => {
 
         case "partial":
           if (event.text && !isPaused) {
+            console.log("📝 Processing partial transcript:", event.text);
             setTranscript((prev) => {
               const newTranscript = prev.trim()
                 ? `${prev} ${event.text}`
@@ -139,15 +161,21 @@ export const ScribeAIIntegration = () => {
       }
     };
 
-    webSocket.onTranscriptEvent(handleTranscriptEvent);
+    // Create enhanced handler with keyphrase expansion
+    const enhancedHandler = createTranscriptEventHandlerWithExpansion(
+      keyPhraseMappings,
+      handleTranscriptEvent
+    );
+
+    webSocket.onTranscriptEvent(enhancedHandler);
 
     return () => {
-      webSocket.removeTranscriptEvent(handleTranscriptEvent);
+      webSocket.removeTranscriptEvent(enhancedHandler);
       if (transcriptSaveIntervalRef.current) {
         clearInterval(transcriptSaveIntervalRef.current);
       }
     };
-  }, [isPaused, webSocket, currentVimEncounterId]);
+  }, [isPaused, webSocket, currentVimEncounterId, keyPhraseMappings]);
 
   // Get form context to update the encounter form fields
   const { setValue, getValues, formState } = useNoteFormContext();

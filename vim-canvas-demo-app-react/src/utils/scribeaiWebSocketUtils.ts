@@ -431,3 +431,99 @@ export const useScribeAIWebSocket = () => {
     cleanup: () => ws.cleanup(),
   };
 };
+
+// ========================================
+// Keyphrase Expansion Utilities
+// ========================================
+
+import type { KeyPhraseMappings } from "@/hooks/useKeyPhrases";
+
+// Escape special regex characters - pattern from client.js:2448-2452
+function escapeRegExp(string: string): string {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// Expand keyphrases in text - exact pattern from client.js real-time expansion logic
+export const expandKeyPhrases = (
+  text: string,
+  keyPhraseMappings: KeyPhraseMappings
+): string => {
+  if (!text || Object.keys(keyPhraseMappings).length === 0) {
+    console.log("🔍 No text or no keyphrases to expand:", {
+      text,
+      mappingsCount: Object.keys(keyPhraseMappings).length,
+    });
+    return text;
+  }
+
+  console.log("🔍 Expanding keyphrases in text:", { text, keyPhraseMappings });
+
+  let processedText = text;
+
+  // Process each keyphrase mapping - exact same logic as client.js
+  for (const [keyPhrase, fullSentence] of Object.entries(keyPhraseMappings)) {
+    const regex = new RegExp(`\\b${escapeRegExp(keyPhrase)}\\b`, "gi");
+    const beforeExpansion = processedText;
+    processedText = processedText.replace(regex, fullSentence);
+
+    if (beforeExpansion !== processedText) {
+      console.log("✅ Keyphrase expanded:", {
+        keyPhrase,
+        fullSentence,
+        beforeExpansion,
+        afterExpansion: processedText,
+      });
+    }
+  }
+
+  console.log("🔍 Final expansion result:", {
+    originalText: text,
+    expandedText: processedText,
+  });
+  return processedText;
+};
+
+// Enhanced transcript event handler with keyphrase expansion
+export const createTranscriptEventHandlerWithExpansion = (
+  keyPhraseMappings: KeyPhraseMappings,
+  originalHandler: TranscriptEventHandler
+): TranscriptEventHandler => {
+  return (event: WebSocketTranscriptEvent) => {
+    console.log("🎯 Enhanced handler called with event:", {
+      type: event.type,
+      text: event.text,
+      mappingsCount: Object.keys(keyPhraseMappings).length,
+    });
+
+    // Only expand text for transcript events that have text content
+    if (
+      event.text &&
+      (event.type === "transcript" || event.type === "partial")
+    ) {
+      console.log("🎯 Processing text event for keyphrase expansion");
+      const expandedText = expandKeyPhrases(event.text, keyPhraseMappings);
+
+      // Create new event with expanded text
+      const expandedEvent: WebSocketTranscriptEvent = {
+        ...event,
+        text: expandedText,
+        metadata: {
+          ...event.metadata,
+          originalText: event.text, // Keep original for reference
+          keyPhrasesExpanded: expandedText !== event.text,
+        },
+      };
+
+      console.log("🎯 Calling original handler with expanded event:", {
+        originalText: event.text,
+        expandedText,
+      });
+      // Call the original handler with expanded text
+      originalHandler(expandedEvent);
+    } else {
+      console.log("🎯 Passing through non-text event unchanged");
+      // Pass through non-text events unchanged
+      originalHandler(event);
+    }
+  };
+};
