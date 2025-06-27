@@ -35,6 +35,7 @@ import {
 } from "@/utils/scribeaiWebSocketUtils";
 import { useVimEncounters } from "@/utils/vimNotesUtils";
 import { useVimOSEncounter } from "@/hooks/useEncounter";
+import { useVimOSPatient } from "@/hooks/usePatient";
 import { useKeyPhrases } from "@/hooks/useKeyPhrases";
 
 // Constants for API interaction
@@ -93,8 +94,9 @@ export const ScribeAIIntegration = () => {
   // Get the singleton instance of the WebSocket
   const webSocket = getScribeAIWebSocket();
 
-  // Get VIM encounter context and database utilities
+  // Get VIM encounter and patient context and database utilities
   const { encounter } = useVimOSEncounter();
+  const { patient } = useVimOSPatient();
   const {
     createNewVimEncounter,
     saveVimEncounterTranscript,
@@ -1010,7 +1012,7 @@ export const ScribeAIIntegration = () => {
       // Create new vim encounter in database
       const vimEncounter = await createNewVimEncounter({
         encounter_id: encounter?.identifiers?.ehrEncounterId || undefined,
-        patient_id: undefined, // Patient ID not available in current encounter structure
+        patient_id: patient?.identifiers?.ehrPatientId || undefined,
       });
 
       if (!vimEncounter) {
@@ -1154,7 +1156,7 @@ export const ScribeAIIntegration = () => {
       if (!currentVimEncounterId) {
         const vimEncounter = await createNewVimEncounter({
           encounter_id: encounter?.identifiers?.ehrEncounterId || undefined,
-          patient_id: undefined, // Patient ID not available in current encounter structure
+          patient_id: patient?.identifiers?.ehrPatientId || undefined,
         });
 
         if (vimEncounter) {
