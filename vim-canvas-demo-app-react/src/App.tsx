@@ -5,6 +5,7 @@ import { EncounterSidebar } from "./components/EncounterSidebar";
 import { Navbar } from "./components/Navbar";
 import { OrderContent } from "./components/OrderContent";
 import { ReferralContent } from "./components/referral-content";
+import { VimEncountersView } from "./components/VimEncountersView";
 import {
   CollapsibleEntity,
   CollapsibleEntityContent,
@@ -39,7 +40,8 @@ function App() {
       // vimOs.hub.setActivationStatus('DISABLED');
       vimOs.hub.setDynamicAppSize("CLASSIC");
     } else {
-      vimOs.hub.setActivationStatus("DISABLED");
+      // For demo purposes, enable when no encounter to test sizing
+      vimOs.hub.setActivationStatus("ENABLED");
     }
   }, [vimOs, setRedirectUrl, encounter]);
 
@@ -59,6 +61,13 @@ function App() {
         {encounter && (
           <div className="encounter-container">
             <EncounterContent />
+          </div>
+        )}
+
+        {/* Show VIM encounters when no encounter is active */}
+        {!encounter && !referral && !orders && (
+          <div className="vim-encounters-container h-[calc(100vh-120px)]">
+            <VimEncountersView />
           </div>
         )}
 

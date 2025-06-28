@@ -9,12 +9,12 @@ import { FormProvider } from "react-hook-form";
 import { EHR } from "vim-os-js-browser/types";
 // import { ProviderSection } from "../Provider";
 // import { Button } from "../ui/button";
-import {
-  // EntityFieldContent,
-  // EntityFieldReadonlyText,
-  // EntityFieldTitle,
-  EntitySectionTitle,
-} from "../ui/entityContent";
+// import {
+//   EntityFieldContent,
+//   EntityFieldReadonlyText,
+//   EntityFieldTitle,
+//   EntitySectionTitle,
+// } from "../ui/entityContent";
 // import { EncounterAssessment } from "./Assessment";
 // import { EncounterBasicInformation } from "./BasicInformation";
 import { FormInputs, useNotesForm } from "./form";
@@ -218,24 +218,7 @@ export const EncounterContent = () => {
         <>
           <FormProvider {...methods}>
             <form onSubmit={methods.handleSubmit(onNotesSubmit)}>
-              <div className="flex justify-between items-center">
-                <EntitySectionTitle
-                  className="text-md"
-                  title="Clinical notes"
-                />
-                {/* Button commented out as it's currently broken - may be needed in the future
-                <Button
-                  size="sm"
-                  variant="default"
-                  className="pl-2 pr-3 h-8"
-                  disabled={!canUpdateNotes?.canUpdate}
-                  onClick={methods.handleSubmit(onNotesSubmit)}
-                >
-                  <CheckIcon className="mr-2" />
-                  Push all notes
-                </Button>
-                */}
-              </div>
+              {/* Removed Clinical notes heading as requested */}
 
               <div className="space-y-4">
                 <ScribeAIIntegration />

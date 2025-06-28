@@ -1,281 +1,312 @@
-# VIM Dynamic Sizing Implementation Plan
+# VIM Dynamic Sizing & Early Activation Plan
 
 ## Overview
 
-The VIM app supports 3 dynamic sizing modes that we can leverage to provide different user experiences based on available screen real estate.
+Transform the VIM app to:
 
-## Current Dynamic Sizes
+1. **Early Activation**: Available at patients list level (not just encounters)
+2. **Responsive Design**: Mobile-style UI for small sizes, desktop-style for large sizes
+3. **Context-Aware**: Different features based on current VIM context
 
-### 1. **SMALL Mode**
+## Current State
 
-- **Use Case**: Minimal footprint, quick access
-- **Characteristics**: Compact widget-like interface
-- **Typical Dimensions**: ~300-400px width
+- ❌ Only available inside specific patient encounters
+- ❌ Single UI design regardless of app size
+- ❌ Late activation in workflow
+- ✅ Working encounter-level functionality
 
-### 2. **CLASSIC Mode** (Current)
+## Target State
 
-- **Use Case**: Standard workflow, balanced functionality
-- **Characteristics**: Medium-sized interface with full features
-- **Typical Dimensions**: ~600-800px width
-
-### 3. **LARGE Mode**
-
-- **Use Case**: Full workflow, maximum functionality
-- **Characteristics**: Expanded interface with enhanced features
-- **Typical Dimensions**: ~1000+ px width
+- ✅ Available at patients list level (`/scribeai/patients`)
+- ✅ Mobile-style UI for CLASSIC size (365px width)
+- ✅ Desktop-style UI for LARGE/EXTRA_LARGE sizes (800px/1350px width)
+- ✅ Context-aware feature sets
 
 ---
 
-## Implementation Strategy
+## Phase 1: Context Detection & Early Activation
 
-### Phase 1: Size Detection & State Management
-
-**1. Add VIM Size Context**
+### 1.1 Create Context Detection Hook
 
 ```typescript
-// src/hooks/useVimSize.tsx
-export type VimSizeMode = "SMALL" | "CLASSIC" | "LARGE";
+// src/hooks/useVimContext.tsx
+interface VimContextState {
+  contextType: "patients_list" | "patient_encounter" | "unknown";
+  currentPatientId?: string;
+  isLoading: boolean;
+}
 
-export const useVimSize = () => {
-  const [currentSize, setCurrentSize] = useState<VimSizeMode>("CLASSIC");
-
-  // Listen to VIM OS size changes
-  useEffect(() => {
-    vimOS.hub.onSizeChange((newSize) => {
-      setCurrentSize(newSize);
-    });
-  }, []);
-
-  return { currentSize, setSize: vimOS.hub.setDynamicAppSize };
+const useVimContext = () => {
+  // Detect current VIM context using vimOS.session
+  // Return contextType and relevant data
 };
 ```
 
-**2. Responsive Layout Hook**
+### 1.2 Update Activation Logic
 
 ```typescript
-// src/hooks/useResponsiveLayout.tsx
-export const useResponsiveLayout = () => {
-  const { currentSize } = useVimSize();
+// src/hooks/useVimActivation.tsx
+const useVimActivation = () => {
+  const { contextType } = useVimContext();
 
-  const layouts = {
-    SMALL: {
-      showSidebar: false,
-      compactMode: true,
-      hideSecondaryFeatures: true,
-    },
-    CLASSIC: {
-      showSidebar: true,
-      compactMode: false,
-      hideSecondaryFeatures: false,
-    },
-    LARGE: {
-      showSidebar: true,
-      compactMode: false,
-      hideSecondaryFeatures: false,
-      enhancedFeatures: true,
-    },
+  useEffect(() => {
+    if (
+      contextType === "patients_list" ||
+      contextType === "patient_encounter"
+    ) {
+      vimOS.hub.setActivationStatus("ENABLED");
+    } else {
+      vimOS.hub.setActivationStatus("LOADING");
+    }
+  }, [contextType]);
+};
+```
+
+### 1.3 Integration Points
+
+- Update `AppWrapper.tsx` to use new activation logic
+- Handle loading states appropriately
+- Ensure graceful fallbacks for unknown contexts
+
+---
+
+## Phase 2: Dynamic Sizing System
+
+### 2.1 Create App Size Detection Hook
+
+```typescript
+// src/hooks/useAppSize.tsx
+interface AppSizeState {
+  currentSize: "CLASSIC" | "LARGE" | "EXTRA_LARGE";
+  isMobile: boolean; // CLASSIC size
+  isDesktop: boolean; // LARGE or EXTRA_LARGE
+  dimensions: { width: number; height: number };
+}
+
+const useAppSize = () => {
+  // Track current app size
+  // Provide responsive utilities
+  // Handle size change events
+};
+```
+
+### 2.2 Size Management Hook
+
+```typescript
+// src/hooks/useVimSizing.tsx
+const useVimSizing = () => {
+  const requestSize = (size: ApplicationSize) => {
+    vimOS.hub.setDynamicAppSize(size);
   };
 
-  return layouts[currentSize];
+  // Manage size requests based on content needs
 };
 ```
 
-### Phase 2: Component Adaptations
-
-**1. ScribeAI Integration Adaptations**
-
-**SMALL Mode:**
-
-- Hide sidebar completely
-- Compact recording controls (icon-only buttons)
-- Minimal transcript display
-- Hide additional notes section
-- Quick action buttons only
-
-**CLASSIC Mode:** (Current)
-
-- Standard layout as implemented
-- Sidebar available via hamburger menu
-- Full feature set
-
-**LARGE Mode:**
-
-- Sidebar always visible (no hamburger needed)
-- Split-screen layout: encounters list on left, main content on right
-- Enhanced transcript view with word-by-word highlighting
-- Multiple encounter comparison view
-- Advanced note editing features
-
-**2. Encounter Sidebar Adaptations**
-
-**SMALL Mode:**
-
-- Hidden completely
-- Access via modal/overlay only
-
-**CLASSIC Mode:**
-
-- Current hamburger menu implementation
-- Slide-in sidebar
-
-**LARGE Mode:**
-
-- Always visible as left panel
-- Wider encounter list (400px)
-- Preview pane for selected encounters
-- Drag & drop encounter organization
-
-**3. Keyphrases Manager Adaptations**
-
-**SMALL Mode:**
-
-- Collapsed by default
-- Icon-only indicator showing count
-- Quick add via inline input
-
-**CLASSIC Mode:**
-
-- Current collapsible implementation
-
-**LARGE Mode:**
-
-- Dedicated right panel
-- Visual keyphrase editor
-- Keyphrase usage analytics
-- Import/export functionality
-
-### Phase 3: Enhanced Features by Size
-
-**SMALL Mode Features:**
-
-- ⚡ Quick recording start/stop
-- 📝 Minimal transcript view
-- 🎯 One-click note generation
-- 🔄 Auto-save everything
-
-**CLASSIC Mode Features:** (Current)
-
-- 🎙️ Full recording controls
-- 📋 Complete transcript editing
-- 🗂️ Encounter management
-- 🔑 Keyphrase management
-
-**LARGE Mode Features:**
-
-- 👁️ Multi-encounter view
-- 📊 Encounter analytics dashboard
-- 🔍 Advanced search & filtering
-- ⚙️ Bulk operations
-- 📈 Usage statistics
-- 🎨 Customizable workspace layout
-
-### Phase 4: User Experience Enhancements
-
-**1. Smart Size Switching**
+### 2.3 Responsive Component System
 
 ```typescript
-// Auto-suggest size changes based on user actions
-const suggestSizeChange = (action: string) => {
-  if (action === "viewMultipleEncounters" && currentSize !== "LARGE") {
-    toast({
-      title: "Expand for better view?",
-      description: "Switch to Large mode for multi-encounter view",
-      action: <Button onClick={() => setSize("LARGE")}>Expand</Button>,
-    });
-  }
+// src/components/ResponsiveWrapper.tsx
+interface ResponsiveWrapperProps {
+  mobileComponent: React.ComponentType;
+  desktopComponent: React.ComponentType;
+  children?: React.ReactNode;
+}
+
+const ResponsiveWrapper = ({
+  mobileComponent: Mobile,
+  desktopComponent: Desktop,
+}) => {
+  const { isMobile } = useAppSize();
+  return isMobile ? <Mobile /> : <Desktop />;
 };
 ```
 
-**2. Size-Specific Shortcuts**
+---
 
-- **SMALL**: Space bar = quick record toggle
-- **CLASSIC**: Current shortcuts + sidebar toggle
-- **LARGE**: Advanced keyboard navigation
+## Phase 3: Context-Aware Components
 
-**3. Responsive Animations**
+### 3.1 Patients List Components
 
-- Smooth transitions between size modes
-- Content reorganization animations
-- Progressive disclosure of features
+#### Mobile Version (CLASSIC - 365px)
+
+```typescript
+// src/components/mobile/MobilePatientsList.tsx
+- Vertical scrollable list
+- Simplified patient cards
+- Touch-friendly tap targets
+- Search bar at top
+- Quick action buttons
+- Similar to mobile app design patterns
+```
+
+#### Desktop Version (LARGE/EXTRA_LARGE - 800px+)
+
+```typescript
+// src/components/desktop/DesktopPatientsList.tsx
+- Data table with columns
+- Advanced filtering options
+- Bulk action capabilities
+- Detailed patient information
+- Side panel for quick preview
+- Similar to current desktop app
+```
+
+### 3.2 Encounter Components
+
+#### Mobile Version
+
+```typescript
+// src/components/mobile/MobileEncounter.tsx
+- Tab-based navigation
+- Stacked form fields
+- Simplified note generation
+- Touch-optimized transcription controls
+- Collapsible sections
+```
+
+#### Desktop Version
+
+```typescript
+// src/components/desktop/DesktopEncounter.tsx
+- Multi-column layout
+- Rich text editors
+- Advanced note generation options
+- Comprehensive transcription interface
+- Side-by-side comparisons
+```
 
 ---
 
-## Implementation Priority
+## Phase 4: Feature Matrix by Context & Size
 
-### Phase 1 (Immediate) ⚡
+### Patients List Context
 
-1. Fix hamburger icon positioning ✅
-2. Add VIM size detection hook
-3. Basic responsive layout adjustments
+| Feature         | Mobile (CLASSIC)  | Desktop (LARGE+) |
+| --------------- | ----------------- | ---------------- |
+| Patient Search  | Simple search bar | Advanced filters |
+| Patient List    | Card-based scroll | Data table       |
+| Quick Actions   | Swipe gestures    | Dropdown menus   |
+| Patient Details | Modal overlay     | Side panel       |
+| Navigation      | Bottom tabs       | Top navigation   |
 
-### Phase 2 (Short-term) 📅
+### Encounter Context
 
-1. SMALL mode optimizations
-2. LARGE mode enhancements
-3. Sidebar behavior adaptations
-
-### Phase 3 (Medium-term) 🚀
-
-1. Enhanced LARGE mode features
-2. Multi-encounter workflows
-3. Advanced analytics
-
-### Phase 4 (Long-term) 🎯
-
-1. AI-powered size suggestions
-2. Customizable layouts
-3. Advanced user preferences
+| Feature         | Mobile (CLASSIC)     | Desktop (LARGE+)   |
+| --------------- | -------------------- | ------------------ |
+| Transcription   | Simple controls      | Advanced controls  |
+| Note Generation | Basic templates      | Full customization |
+| Patient Info    | Collapsible sections | Always visible     |
+| History         | Tab navigation       | Multi-panel        |
+| Actions         | Stacked buttons      | Toolbar            |
 
 ---
 
-## Technical Considerations
+## Phase 5: Implementation Strategy
 
-**1. Performance**
+### 5.1 Development Order
 
-- Lazy load LARGE mode features
-- Efficient re-rendering on size changes
-- Memory management for multiple encounters
+1. ✅ **Context Detection** - Create hooks for VIM context awareness
+2. ✅ **Early Activation** - Enable app at patients list level
+3. ✅ **Size Detection** - Implement app size tracking
+4. ✅ **Responsive Wrapper** - Create component switching system
+5. ✅ **Mobile Components** - Build mobile-optimized components
+6. ✅ **Desktop Components** - Enhance desktop components
+7. ✅ **Feature Integration** - Connect features to appropriate contexts
+8. ✅ **Testing & Polish** - Test all combinations and edge cases
 
-**2. State Management**
+### 5.2 File Structure
 
-- Preserve user state across size changes
-- Smart caching of encounter data
-- Optimistic UI updates
+```
+src/
+├── hooks/
+│   ├── useVimContext.tsx       # Context detection
+│   ├── useVimActivation.tsx    # Activation management
+│   ├── useAppSize.tsx          # Size detection
+│   └── useVimSizing.tsx        # Size management
+├── components/
+│   ├── ResponsiveWrapper.tsx   # Size-based switching
+│   ├── mobile/                 # Mobile-optimized components
+│   │   ├── MobilePatientsList.tsx
+│   │   ├── MobileEncounter.tsx
+│   │   └── ...
+│   └── desktop/                # Desktop-optimized components
+│       ├── DesktopPatientsList.tsx
+│       ├── DesktopEncounter.tsx
+│       └── ...
+└── utils/
+    ├── vimContextUtils.ts      # Context detection utilities
+    └── vimSizingUtils.ts       # Size management utilities
+```
 
-**3. Accessibility**
+### 5.3 Integration Points
 
-- Keyboard navigation for all sizes
-- Screen reader compatibility
-- High contrast mode support
-
-**4. Testing Strategy**
-
-- Automated tests for each size mode
-- Visual regression testing
-- User acceptance testing per mode
-
----
-
-## Success Metrics
-
-**SMALL Mode:**
-
-- Faster task completion for quick recordings
-- Reduced cognitive load
-- Higher adoption for brief encounters
-
-**CLASSIC Mode:**
-
-- Balanced functionality and usability
-- Current user satisfaction maintained
-- Smooth workflow transitions
-
-**LARGE Mode:**
-
-- Increased productivity for complex workflows
-- Better multi-encounter management
-- Enhanced power-user features adoption
+- Update `AppWrapper.tsx` to use new activation logic
+- Enhance existing components with responsive wrappers
+- Maintain backward compatibility during transition
+- Add proper TypeScript types for all new interfaces
 
 ---
 
-This plan ensures we take full advantage of VIM's dynamic sizing capabilities while providing users with optimized experiences for different use cases and screen real estate scenarios.
+## Phase 6: Testing Strategy
+
+### 6.1 Context Testing
+
+- [ ] Test activation at patients list level
+- [ ] Test activation during encounter navigation
+- [ ] Test handling of unknown contexts
+- [ ] Test context transitions
+
+### 6.2 Size Testing
+
+- [ ] Test CLASSIC size mobile components
+- [ ] Test LARGE size desktop components
+- [ ] Test EXTRA_LARGE size desktop components
+- [ ] Test dynamic size changes
+- [ ] Test responsive switching
+
+### 6.3 Integration Testing
+
+- [ ] Test all context + size combinations
+- [ ] Test feature availability matrix
+- [ ] Test navigation between contexts
+- [ ] Test state persistence across size changes
+
+---
+
+## Success Criteria
+
+✅ **Early Activation**: App available at patients list level
+✅ **Responsive Design**: Different UIs for different sizes
+✅ **Context Awareness**: Appropriate features per context
+✅ **Smooth Transitions**: Seamless size and context changes
+✅ **Performance**: No degradation in app performance
+✅ **User Experience**: Intuitive and familiar interfaces
+
+---
+
+## Risk Mitigation
+
+| Risk                       | Mitigation                                     |
+| -------------------------- | ---------------------------------------------- |
+| VIM SDK limitations        | Thorough SDK documentation review and testing  |
+| Context detection failures | Robust fallback mechanisms                     |
+| Size change performance    | Efficient re-rendering strategies              |
+| User confusion             | Clear visual indicators and smooth transitions |
+| Backward compatibility     | Gradual rollout and feature flags              |
+
+---
+
+## Timeline Estimate
+
+- **Phase 1**: Context Detection & Early Activation (2-3 days)
+- **Phase 2**: Dynamic Sizing System (2-3 days)
+- **Phase 3**: Context-Aware Components (4-5 days)
+- **Phase 4**: Feature Integration (2-3 days)
+- **Phase 5**: Testing & Polish (2-3 days)
+
+**Total Estimated Time**: 12-17 days
+
+---
+
+This plan provides a comprehensive roadmap for implementing dynamic sizing and early activation while maintaining clean architecture and excellent user experience across all contexts and sizes.

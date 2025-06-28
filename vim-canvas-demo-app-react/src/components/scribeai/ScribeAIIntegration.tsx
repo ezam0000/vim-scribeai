@@ -11,7 +11,6 @@ import {
   BugIcon,
   PauseIcon,
   PlayIcon,
-  SaveIcon,
 } from "lucide-react";
 import {
   EntitySectionTitle,
@@ -535,7 +534,7 @@ export const ScribeAIIntegration = () => {
         customNotes,
       };
 
-      setProcessingStatus("Generating clinical note...");
+      setProcessingStatus("Generating note...");
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -1191,7 +1190,7 @@ export const ScribeAIIntegration = () => {
       toast({
         variant: "default",
         title: "Recording transcribed successfully!",
-        description: "Click 'Generate Note' to create a clinical note.",
+        description: "Click 'Generate Note' to create a note.",
       });
       setProcessingStatus(null); // Clear the processing status
 
@@ -1249,100 +1248,96 @@ export const ScribeAIIntegration = () => {
     <div className="border rounded-md my-4 bg-gray-50 p-4">
       <EntitySectionTitle title="ScribeAI Note Generator" />
       <EntitySectionContent>
-        <div className="flex flex-wrap gap-2 mb-4 items-center">
-          {!isRecording ? (
-            <Button
-              variant="outline"
-              onClick={startRecording}
-              disabled={uploading}
-              className="flex items-center bg-green-600 text-white hover:bg-green-700"
-            >
-              <MicIcon className="mr-2 h-4 w-4" />
-              Start Recording
-            </Button>
-          ) : (
-            <>
-              {!isPaused ? (
-                <Button
-                  variant="outline"
-                  onClick={pauseRecording}
-                  className="flex items-center bg-yellow-500 text-white hover:bg-yellow-600"
-                >
-                  <PauseIcon className="mr-2 h-4 w-4" />
-                  Pause
-                </Button>
-              ) : (
-                <Button
-                  variant="outline"
-                  onClick={resumeRecording}
-                  className="flex items-center bg-green-600 text-white hover:bg-green-700"
-                >
-                  <PlayIcon className="mr-2 h-4 w-4" />
-                  Resume
-                </Button>
-              )}
+        {/* Button layout - stack vertically for mobile/small view */}
+        <div className="space-y-3 mb-4">
+          <div className="space-y-2">
+            {!isRecording ? (
               <Button
-                variant="destructive"
-                onClick={stopRecording}
-                className="flex items-center"
+                onClick={startRecording}
+                disabled={uploading}
+                className="w-full flex items-center justify-center border-none text-lg py-4"
+                style={{
+                  backgroundColor: "#68e095",
+                  color: "#335df3",
+                }}
               >
-                <SquareIcon className="mr-2 h-4 w-4" />
-                Stop
+                <MicIcon
+                  className="mr-2 h-5 w-5"
+                  style={{ color: "#335df3" }}
+                />
+                Start encounter
               </Button>
-            </>
-          )}
+            ) : (
+              <div className="space-y-2">
+                {!isPaused ? (
+                  <Button
+                    onClick={pauseRecording}
+                    className="w-full flex items-center justify-center bg-yellow-500 text-white hover:bg-yellow-600 py-3"
+                  >
+                    <PauseIcon className="mr-2 h-4 w-4" />
+                    Pause
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={resumeRecording}
+                    className="w-full flex items-center justify-center border-none py-3"
+                    style={{
+                      backgroundColor: "#68e095",
+                      color: "#335df3",
+                    }}
+                  >
+                    <PlayIcon
+                      className="mr-2 h-4 w-4"
+                      style={{ color: "#335df3" }}
+                    />
+                    Resume
+                  </Button>
+                )}
+                <Button
+                  variant="destructive"
+                  onClick={stopRecording}
+                  className="w-full flex items-center justify-center py-3"
+                >
+                  <SquareIcon className="mr-2 h-4 w-4" />
+                  Stop
+                </Button>
+              </div>
+            )}
 
-          <Button
-            variant="outline"
-            onClick={triggerFileUpload}
-            disabled={uploading || isRecording}
-            className="flex items-center"
-          >
-            <FileIcon className="mr-2 h-4 w-4" />
-            Upload Audio
-          </Button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="audio/*"
-            onChange={handleFileUpload}
-            className="hidden"
-          />
-
-          <div className="flex-grow"></div>
-
-          {/* <div className="flex items-center space-x-2">
-          <Switch
-            id="auto-apply"
-            checked={autoApply}
-            onCheckedChange={setAutoApply}
-          />
-          <Label htmlFor="auto-apply">Auto-apply to form</Label>
-        </div> */}
-
-          {/* <div className="flex items-center space-x-2">
-          <Switch
-            id="debug-mode"
-            checked={debugMode}
-            onCheckedChange={setDebugMode}
-          />
-          <Label htmlFor="debug-mode">Debug Mode</Label>
-        </div> */}
-
-          {debugMode && (
             <Button
               variant="outline"
-              onClick={checkFormFields}
-              className="flex items-center"
+              onClick={triggerFileUpload}
+              disabled={uploading || isRecording}
+              className="w-full flex items-center justify-center py-3"
             >
-              <BugIcon className="mr-2 h-4 w-4" />
-              Check Form Fields
+              <FileIcon className="mr-2 h-4 w-4" />
+              Upload Audio
             </Button>
-          )}
+
+            {debugMode && (
+              <Button
+                variant="outline"
+                onClick={checkFormFields}
+                className="w-full flex items-center justify-center py-3"
+              >
+                <BugIcon className="mr-2 h-4 w-4" />
+                Check Form Fields
+              </Button>
+            )}
+          </div>
         </div>
 
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="audio/*"
+          onChange={handleFileUpload}
+          className="hidden"
+        />
+
         {/* Status Display */}
-        <div className="flex items-center gap-2 mb-4 p-3 border rounded-md bg-gray-50">
+        <div className="flex items-center gap-2 mb-4 p-3 border rounded-md bg-gray-50 text-sm">
           {/* Status Icon */}
           {connected ? (
             uploading ? (
@@ -1356,14 +1351,6 @@ export const ScribeAIIntegration = () => {
           <span className="text-sm font-medium">
             {processingStatus || "Ready"}
           </span>
-
-          {/* Database Status Indicator */}
-          {currentVimEncounterId && (
-            <div className="ml-auto flex items-center gap-1 text-xs text-gray-600">
-              <SaveIcon className="w-3 h-3" />
-              <span>DB: {currentVimEncounterId.slice(-8)}</span>
-            </div>
-          )}
         </div>
 
         {/* Debug info */}
@@ -1380,7 +1367,7 @@ export const ScribeAIIntegration = () => {
         <EntityFieldContent>
           <EntityFieldTitle title="Transcript" />
           <Textarea
-            className="w-full min-h-[100px]"
+            className="w-full min-h-[80px] text-sm"
             value={transcript}
             onChange={(e) => setTranscript(e.target.value)}
             placeholder="Transcript will appear here or type directly..."
@@ -1390,19 +1377,20 @@ export const ScribeAIIntegration = () => {
         <EntityFieldContent>
           <EntityFieldTitle title="Additional Notes" />
           <Textarea
-            className="w-full min-h-[60px]"
+            className="w-full min-h-[50px] text-sm"
             value={customNotes}
             onChange={(e) => setCustomNotes(e.target.value)}
             placeholder="Enter any additional notes or context..."
           />
         </EntityFieldContent>
 
-        <div className="flex flex-wrap mb-4 md:space-x-2">
+        {/* Action buttons */}
+        <div className="flex flex-col space-y-2 mb-4">
           <Button
             variant="default"
             disabled={!transcript || uploading || isRecording}
             onClick={generateNote}
-            className="w-full mb-2 sm:flex-1"
+            className="w-full"
           >
             Generate Note
           </Button>
@@ -1411,7 +1399,7 @@ export const ScribeAIIntegration = () => {
             <Button
               variant="outline"
               onClick={applyParsedNote}
-              className="flex-1 mb-2"
+              className="w-full"
             >
               <CheckIcon className="mr-2 h-4 w-4" />
               Apply to Form
@@ -1422,7 +1410,7 @@ export const ScribeAIIntegration = () => {
             <Button
               variant="outline"
               onClick={copyToClipboard}
-              className="m-0 flex-1 "
+              className="w-full"
             >
               <ClipboardIcon className="mr-2 h-4 w-4" />
               Copy Note
@@ -1447,7 +1435,7 @@ export const ScribeAIIntegration = () => {
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="p-3 bg-white">
-                <pre className="whitespace-pre-wrap text-sm">
+                <pre className="whitespace-pre-wrap text-xs">
                   {generatedNote}
                 </pre>
               </div>
