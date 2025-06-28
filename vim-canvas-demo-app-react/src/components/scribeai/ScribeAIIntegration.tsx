@@ -11,6 +11,8 @@ import {
   BugIcon,
   PauseIcon,
   PlayIcon,
+  StopCircleIcon,
+  Upload,
 } from "lucide-react";
 import {
   EntitySectionTitle,
@@ -100,6 +102,7 @@ export const ScribeAIIntegration = () => {
     createNewVimEncounter,
     saveVimEncounterTranscript,
     saveVimEncounterNote,
+    getVimEncountersList,
   } = useVimEncounters();
 
   // Get keyphrases for expansion
@@ -236,12 +239,12 @@ export const ScribeAIIntegration = () => {
       return;
     }
 
-    // Only save if transcript has grown significantly since last save
+    // Only save if transcript has grown since last save (reduced threshold to 10 characters)
     const currentLength = accumulatedTranscript.length;
     const lastSavedLength = lastSavedLengthRef.current;
 
-    // Save if we have at least 50 new characters or it's been substantial growth
-    if (currentLength - lastSavedLength > 50) {
+    // Save if we have at least 10 new characters or it's been substantial growth
+    if (currentLength - lastSavedLength > 10) {
       try {
         await saveVimEncounterTranscript(
           currentVimEncounterId,
@@ -262,6 +265,47 @@ export const ScribeAIIntegration = () => {
       } catch (error) {
         console.error("Failed to save transcript progressively:", error);
       }
+    }
+  };
+
+  // Force save transcript (used when pausing or stopping)
+  const forceSaveTranscript = async () => {
+    if (!currentVimEncounterId || !accumulatedTranscript.trim()) {
+      return;
+    }
+
+    try {
+      await saveVimEncounterTranscript(
+        currentVimEncounterId,
+        accumulatedTranscript,
+        {
+          confidence: 0.9,
+          duration: Math.floor(Date.now() / 1000),
+          source: "live_recording",
+          timestamp: new Date().toISOString(),
+          custom_notes: customNotes || undefined,
+        }
+      );
+
+      lastSavedLengthRef.current = accumulatedTranscript.length;
+      console.log(
+        `💾 Transcript force saved: ${accumulatedTranscript.length} characters`
+      );
+    } catch (error) {
+      console.error("Failed to force save transcript:", error);
+    }
+  };
+
+  // Handle manual transcript editing
+  const handleTranscriptEdit = (newTranscript: string) => {
+    setTranscript(newTranscript);
+    setAccumulatedTranscript(newTranscript);
+
+    // Auto-save edited transcript after a short delay
+    if (currentVimEncounterId) {
+      setTimeout(() => {
+        forceSaveTranscript();
+      }, 1000);
     }
   };
 
@@ -1003,50 +1047,106 @@ export const ScribeAIIntegration = () => {
     }
   };
 
-  // Start recording
+  // Load existing encounter transcript when component mounts or encounter changes
+  useEffect(() => {
+    const loadExistingTranscript = async () => {
+      if (!encounter?.identifiers?.ehrEncounterId) return;
+
+      try {
+        // Try to find existing encounter for this VIM encounter ID
+        const encounters = await getVimEncountersList({
+          encounterId: encounter.identifiers.ehrEncounterId,
+        });
+
+        if (encounters && encounters.length > 0) {
+          const existingEncounter = encounters[0]; // Get the most recent
+          setCurrentVimEncounterId(existingEncounter.id);
+
+          if (existingEncounter.transcript_content) {
+            setTranscript(existingEncounter.transcript_content);
+            setAccumulatedTranscript(existingEncounter.transcript_content);
+            lastSavedLengthRef.current =
+              existingEncounter.transcript_content.length;
+            console.log(
+              "📄 Loaded existing transcript:",
+              existingEncounter.transcript_content.length,
+              "characters"
+            );
+          }
+
+          if (existingEncounter.note_content) {
+            setGeneratedNote(existingEncounter.note_content);
+            console.log("📄 Loaded existing note");
+          }
+        }
+      } catch (error) {
+        console.error("Error loading existing transcript:", error);
+      }
+    };
+
+    loadExistingTranscript();
+  }, [encounter?.identifiers?.ehrEncounterId, getVimEncountersList]);
+
+  // Start recording - reuse existing encounter if available
   const startRecording = async () => {
     try {
-      setProcessingStatus("Creating encounter...");
+      setProcessingStatus("Setting up recording...");
 
-      // Create new vim encounter in database
-      const vimEncounter = await createNewVimEncounter({
-        encounter_id: encounter?.identifiers?.ehrEncounterId || undefined,
-        patient_id: patient?.identifiers?.ehrPatientId || undefined,
-      });
+      let encounterId = currentVimEncounterId;
 
-      if (!vimEncounter) {
-        setProcessingStatus("Failed to create encounter");
-        return;
+      // Only create new encounter if we don't already have one
+      if (!encounterId) {
+        console.log("🆕 Creating new encounter");
+        setProcessingStatus("Creating new encounter...");
+
+        const vimEncounter = await createNewVimEncounter({
+          encounter_id: encounter?.identifiers?.ehrEncounterId || undefined,
+          patient_id: patient?.identifiers?.ehrPatientId || undefined,
+        });
+
+        if (!vimEncounter) {
+          setProcessingStatus("Failed to create encounter");
+          return;
+        }
+
+        encounterId = vimEncounter.id;
+        setCurrentVimEncounterId(encounterId);
+        console.log("✅ Created new encounter:", encounterId);
+      } else {
+        console.log("♻️ Reusing existing encounter:", encounterId);
+        setProcessingStatus("Using existing encounter...");
       }
 
-      setCurrentVimEncounterId(vimEncounter.id);
       setProcessingStatus("Starting recording...");
-
-      // Clear transcript for new recording
-      setTranscript("");
-      setAccumulatedTranscript("");
-      lastSavedLengthRef.current = 0;
       setIsPaused(false);
 
-      // Clear note state for new encounter
-      setGeneratedNote("");
-      setParsedNote(null);
-
+      // Start WebSocket recording
       const success = await webSocket.startRecording();
       if (success) {
         setIsRecording(true);
         setProcessingStatus("Recording - speak now");
 
-        // Start progressive transcript saving interval (every 3 seconds)
+        // Start progressive transcript saving interval
+        if (transcriptSaveIntervalRef.current) {
+          clearInterval(transcriptSaveIntervalRef.current);
+        }
+
         transcriptSaveIntervalRef.current = setInterval(() => {
           saveTranscriptProgressively();
         }, 3000);
       } else {
         setProcessingStatus("Failed to start recording");
       }
+
+      console.log("✅ Recording started successfully");
     } catch (error) {
-      console.error("Error starting recording:", error);
-      setProcessingStatus("Recording failed");
+      console.error("Failed to start recording:", error);
+      setProcessingStatus(`Error: ${error}`);
+      toast({
+        variant: "destructive",
+        title: "Recording failed",
+        description: "Could not start recording. Please try again.",
+      });
     }
   };
 
@@ -1061,10 +1161,8 @@ export const ScribeAIIntegration = () => {
       transcriptSaveIntervalRef.current = null;
     }
 
-    // Save current transcript one more time
-    if (currentVimEncounterId && accumulatedTranscript.trim()) {
-      saveTranscriptProgressively();
-    }
+    // Force save current transcript when pausing
+    forceSaveTranscript();
 
     webSocket.stopRecording();
   };
@@ -1080,6 +1178,10 @@ export const ScribeAIIntegration = () => {
         setProcessingStatus("Recording resumed - speak now");
 
         // Restart progressive transcript saving interval
+        if (transcriptSaveIntervalRef.current) {
+          clearInterval(transcriptSaveIntervalRef.current);
+        }
+
         transcriptSaveIntervalRef.current = setInterval(() => {
           saveTranscriptProgressively();
         }, 3000);
@@ -1087,20 +1189,25 @@ export const ScribeAIIntegration = () => {
         setProcessingStatus("Failed to resume recording");
         setIsPaused(true);
       }
+
+      console.log("✅ Recording resumed successfully");
     } catch (error) {
-      console.error("Error resuming recording:", error);
-      setProcessingStatus("Resume failed");
+      console.error("Failed to resume recording:", error);
+      setProcessingStatus(`Resume failed: ${error}`);
       setIsPaused(true);
+      toast({
+        variant: "destructive",
+        title: "Resume failed",
+        description: "Could not resume recording. Please try again.",
+      });
     }
   };
 
-  // Stop recording
+  // Stop recording completely - but keep encounter active for continuation
   const stopRecording = () => {
-    webSocket.disconnect();
-    setIsRecording(false);
     setIsPaused(false);
-    setConnected(false);
-    setProcessingStatus("Recording stopped");
+    setIsRecording(false);
+    setProcessingStatus("Recording stopped - ready to continue");
 
     // Clear progressive saving interval
     if (transcriptSaveIntervalRef.current) {
@@ -1108,10 +1215,17 @@ export const ScribeAIIntegration = () => {
       transcriptSaveIntervalRef.current = null;
     }
 
-    // Save final transcript one more time
-    if (currentVimEncounterId && accumulatedTranscript.trim()) {
-      saveTranscriptProgressively();
-    }
+    // Force save current transcript when stopping
+    forceSaveTranscript();
+
+    webSocket.stopRecording();
+    setConnected(false);
+
+    toast({
+      title: "Recording stopped",
+      description:
+        "You can start recording again to continue documenting this appointment.",
+    });
   };
 
   // Helper function to upload the audio file
@@ -1251,7 +1365,50 @@ export const ScribeAIIntegration = () => {
         {/* Button layout - stack vertically for mobile/small view */}
         <div className="space-y-3 mb-4">
           <div className="space-y-2">
-            {!isRecording ? (
+            {isRecording ? (
+              <div className="space-y-2">
+                {!isPaused ? (
+                  <Button
+                    onClick={pauseRecording}
+                    className="w-full flex items-center justify-center border-none text-lg py-4"
+                    style={{
+                      backgroundColor: "#ffc107",
+                      color: "white",
+                    }}
+                  >
+                    <PauseIcon
+                      className="mr-2 h-5 w-5"
+                      style={{ color: "white" }}
+                    />
+                    Pause Recording
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={resumeRecording}
+                    className="w-full flex items-center justify-center border-none text-lg py-4"
+                    style={{
+                      backgroundColor: "#68e095",
+                      color: "#335df3",
+                    }}
+                  >
+                    <PlayIcon
+                      className="mr-2 h-5 w-5"
+                      style={{ color: "#335df3" }}
+                    />
+                    Resume Recording
+                  </Button>
+                )}
+
+                <Button
+                  onClick={stopRecording}
+                  variant="destructive"
+                  className="w-full flex items-center justify-center text-lg py-4"
+                >
+                  <StopCircleIcon className="mr-2 h-5 w-5" />
+                  Stop Recording
+                </Button>
+              </div>
+            ) : (
               <Button
                 onClick={startRecording}
                 disabled={uploading}
@@ -1265,43 +1422,8 @@ export const ScribeAIIntegration = () => {
                   className="mr-2 h-5 w-5"
                   style={{ color: "#335df3" }}
                 />
-                Start encounter
+                Start Recording
               </Button>
-            ) : (
-              <div className="space-y-2">
-                {!isPaused ? (
-                  <Button
-                    onClick={pauseRecording}
-                    className="w-full flex items-center justify-center bg-yellow-500 text-white hover:bg-yellow-600 py-3"
-                  >
-                    <PauseIcon className="mr-2 h-4 w-4" />
-                    Pause
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={resumeRecording}
-                    className="w-full flex items-center justify-center border-none py-3"
-                    style={{
-                      backgroundColor: "#68e095",
-                      color: "#335df3",
-                    }}
-                  >
-                    <PlayIcon
-                      className="mr-2 h-4 w-4"
-                      style={{ color: "#335df3" }}
-                    />
-                    Resume
-                  </Button>
-                )}
-                <Button
-                  variant="destructive"
-                  onClick={stopRecording}
-                  className="w-full flex items-center justify-center py-3"
-                >
-                  <SquareIcon className="mr-2 h-4 w-4" />
-                  Stop
-                </Button>
-              </div>
             )}
 
             <Button
@@ -1369,7 +1491,7 @@ export const ScribeAIIntegration = () => {
           <Textarea
             className="w-full min-h-[80px] text-sm"
             value={transcript}
-            onChange={(e) => setTranscript(e.target.value)}
+            onChange={(e) => handleTranscriptEdit(e.target.value)}
             placeholder="Transcript will appear here or type directly..."
           />
         </EntityFieldContent>
