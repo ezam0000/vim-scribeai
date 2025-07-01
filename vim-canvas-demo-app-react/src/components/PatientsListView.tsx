@@ -154,20 +154,8 @@ export const PatientsListView: React.FC = () => {
         ) : (
           // Mobile: Show patients list
           <ResponsiveWrapper
-            mobileComponent={
-              <MobilePatientsList
-                patients={samplePatients}
-                onPatientSelect={handlePatientSelect}
-                onSearch={handleSearch}
-              />
-            }
-            desktopComponent={
-              <DesktopPatientsList
-                patients={samplePatients}
-                onPatientSelect={handlePatientSelect}
-                onSearch={handleSearch}
-              />
-            }
+            mobileComponent={MobilePatientsList}
+            desktopComponent={DesktopPatientsList}
           />
         )}
       </div>
@@ -188,20 +176,8 @@ export const PatientsListView: React.FC = () => {
         }`}
       >
         <ResponsiveWrapper
-          mobileComponent={
-            <MobilePatientsList
-              patients={samplePatients}
-              onPatientSelect={handlePatientSelect}
-              onSearch={handleSearch}
-            />
-          }
-          desktopComponent={
-            <DesktopPatientsList
-              patients={samplePatients}
-              onPatientSelect={handlePatientSelect}
-              onSearch={handleSearch}
-            />
-          }
+          mobileComponent={MobilePatientsList}
+          desktopComponent={DesktopPatientsList}
         />
       </div>
 

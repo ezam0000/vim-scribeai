@@ -2,7 +2,7 @@ import React from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, User, Calendar, MoreHorizontal } from "lucide-react";
+import { Search, User, MoreHorizontal } from "lucide-react";
 import { SizeAwareNotification } from "../SizeAwareNotification";
 
 interface Patient {

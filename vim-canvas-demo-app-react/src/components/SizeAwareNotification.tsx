@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "./ui/button";
-import { useAppSize } from "@/hooks/useAppSize";
+import { useAppSize, ApplicationSize } from "@/hooks/useAppSize";
 import { useVimSizing } from "@/hooks/useVimSizing";
 import { Monitor, Maximize2, Eye, Users } from "lucide-react";
 
@@ -13,7 +13,7 @@ export const SizeAwareNotification: React.FC<SizeAwareNotificationProps> = ({
   context,
   className = "",
 }) => {
-  const { currentSize, isMobile } = useAppSize();
+  const { currentSize } = useAppSize();
   const { requestSize } = useVimSizing();
 
   // Don't show notification for EXTRA_LARGE
@@ -29,7 +29,9 @@ export const SizeAwareNotification: React.FC<SizeAwareNotificationProps> = ({
             currentSize === "CLASSIC"
               ? "Expand to see patient table with advanced filtering and details"
               : "Expand to EXTRA_LARGE for full patient management experience",
-          suggestedSize: currentSize === "CLASSIC" ? "LARGE" : "EXTRA_LARGE",
+          suggestedSize: (currentSize === "CLASSIC"
+            ? "LARGE"
+            : "EXTRA_LARGE") as ApplicationSize,
         };
       case "encounter":
         return {

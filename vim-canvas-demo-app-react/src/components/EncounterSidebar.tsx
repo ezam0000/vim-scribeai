@@ -25,7 +25,6 @@ export const EncounterSidebar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "details">("list");
   const [searchInput, setSearchInput] = useState(searchTerm);
-  const { toast } = useToast();
 
   // Handle search
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -248,22 +247,15 @@ export const EncounterSidebar: React.FC = () => {
                       )}
 
                       {/* Patient Info Section */}
-                      {selectedEncounter.patient_info && (
+                      {selectedEncounter.patient_id && (
                         <div>
                           <h4 className="font-medium text-sm mb-2 text-gray-700">
                             Patient Information
                           </h4>
                           <div className="bg-green-50 p-3 rounded border text-sm">
-                            <pre className="whitespace-pre-wrap">
-                              {typeof selectedEncounter.patient_info ===
-                              "string"
-                                ? selectedEncounter.patient_info
-                                : JSON.stringify(
-                                    selectedEncounter.patient_info,
-                                    null,
-                                    2
-                                  )}
-                            </pre>
+                            <div>
+                              Patient ID: {selectedEncounter.patient_id}
+                            </div>
                           </div>
                         </div>
                       )}

@@ -85,8 +85,8 @@ const samplePatients = [
 ];
 
 export const SizingDemo: React.FC = () => {
-  const { currentSize, isMobile, isDesktop, dimensions } = useAppSize();
-  const { requestSize, requestSizeForContent } = useVimSizing();
+  const { currentSize, isMobile, dimensions } = useAppSize();
+  const { requestSize } = useVimSizing();
 
   const handlePatientSelect = (patient: any) => {
     console.log("Selected patient:", patient);

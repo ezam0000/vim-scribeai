@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { useNoteFormContext } from "../encounter-content/form";
 import {
   MicIcon,
-  SquareIcon,
   FileIcon,
   ClipboardIcon,
   CheckIcon,
@@ -12,7 +11,6 @@ import {
   PauseIcon,
   PlayIcon,
   StopCircleIcon,
-  Upload,
 } from "lucide-react";
 import {
   EntitySectionTitle,

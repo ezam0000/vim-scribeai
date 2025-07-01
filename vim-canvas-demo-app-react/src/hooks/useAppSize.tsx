@@ -18,21 +18,6 @@ export const useAppSize = (): AppSizeState => {
   useEffect(() => {
     if (!vimOS?.hub) return;
 
-    // Set initial size based on current app state
-    // Note: VIM OS doesn't expose current size directly, so we'll track changes
-    const handleSizeChange = (newSize: ApplicationSize) => {
-      setCurrentSize(newSize);
-
-      // Update dimensions based on size
-      const dimensionMap = {
-        CLASSIC: { width: 365, height: 600 },
-        LARGE: { width: 800, height: 600 },
-        EXTRA_LARGE: { width: 1350, height: 600 },
-      };
-
-      setDimensions(dimensionMap[newSize]);
-    };
-
     // Since VIM OS doesn't expose size change events yet,
     // we'll implement this as a manual tracking system
     // This can be enhanced when VIM OS SDK adds size change listeners
