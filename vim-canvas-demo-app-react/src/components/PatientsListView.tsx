@@ -6,82 +6,6 @@ import { useAppSize } from "@/hooks/useAppSize";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { FileText, User } from "lucide-react";
 
-// Sample patient data
-const samplePatients = [
-  {
-    id: "1",
-    name: "John Doe",
-    dateOfBirth: "1985-03-15",
-    lastVisit: "2024-01-15",
-    status: "Active",
-    phone: "(555) 123-4567",
-    email: "john.doe@email.com",
-  },
-  {
-    id: "2",
-    name: "Jane Smith",
-    dateOfBirth: "1990-07-22",
-    lastVisit: "2024-01-10",
-    status: "Active",
-    phone: "(555) 987-6543",
-    email: "jane.smith@email.com",
-  },
-  {
-    id: "3",
-    name: "Bob Johnson",
-    dateOfBirth: "1978-11-03",
-    lastVisit: "2023-12-20",
-    status: "Inactive",
-    phone: "(555) 456-7890",
-    email: "bob.johnson@email.com",
-  },
-  {
-    id: "4",
-    name: "Alice Williams",
-    dateOfBirth: "1992-05-18",
-    lastVisit: "2024-01-12",
-    status: "Active",
-    phone: "(555) 234-5678",
-    email: "alice.williams@email.com",
-  },
-  {
-    id: "5",
-    name: "Charlie Brown",
-    dateOfBirth: "1980-09-30",
-    lastVisit: "2024-01-08",
-    status: "Active",
-    phone: "(555) 345-6789",
-    email: "charlie.brown@email.com",
-  },
-  {
-    id: "6",
-    name: "Diana Prince",
-    dateOfBirth: "1988-12-12",
-    lastVisit: "2023-12-15",
-    status: "Active",
-    phone: "(555) 567-8901",
-    email: "diana.prince@email.com",
-  },
-  {
-    id: "7",
-    name: "Edward Norton",
-    dateOfBirth: "1975-02-28",
-    lastVisit: "2024-01-05",
-    status: "Inactive",
-    phone: "(555) 678-9012",
-    email: "edward.norton@email.com",
-  },
-  {
-    id: "8",
-    name: "Fiona Green",
-    dateOfBirth: "1995-08-14",
-    lastVisit: "2024-01-18",
-    status: "Active",
-    phone: "(555) 789-0123",
-    email: "fiona.green@email.com",
-  },
-];
-
 // Sample notes for selected patient
 const sampleNotes = [
   {
@@ -102,15 +26,6 @@ const sampleNotes = [
 export const PatientsListView: React.FC = () => {
   const { currentSize, isMobile } = useAppSize();
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
-
-  const handlePatientSelect = (patient: any) => {
-    setSelectedPatient(patient);
-  };
-
-  const handleSearch = (query: string) => {
-    console.log("Search query:", query);
-    // In a real app, this would filter the patients list
-  };
 
   // For mobile view, show full screen patients list or notes
   if (isMobile) {

@@ -12,8 +12,8 @@ export interface AppSizeState {
 
 export const useAppSize = (): AppSizeState => {
   const vimOS = useVimOsContext();
-  const [currentSize, setCurrentSize] = useState<ApplicationSize>("CLASSIC");
-  const [dimensions, setDimensions] = useState({ width: 365, height: 600 });
+  const [currentSize] = useState<ApplicationSize>("CLASSIC");
+  const [dimensions] = useState({ width: 365, height: 600 });
 
   useEffect(() => {
     if (!vimOS?.hub) return;
