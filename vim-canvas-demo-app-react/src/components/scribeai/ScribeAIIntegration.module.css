@@ -13,6 +13,12 @@
   border: none !important;
 }
 
+.stopButton {
+  background-color: #e32d2d !important; /* red */
+  color: white !important;
+  border: none !important;
+}
+
 /* Icon Styles */
 .recordingIcon {
   color: #335df3;
@@ -20,6 +26,22 @@
 
 .pauseIcon {
   color: white;
+}
+
+.iconSmall {
+  margin-right: 0.5rem;
+  height: 1rem;
+  width: 1rem;
+}
+
+.iconMedium {
+  margin-right: 0.5rem;
+  height: 1.25rem;
+  width: 1.25rem;
+}
+
+.hiddenInput {
+  display: none;
 }
 
 /* Status Indicator Dots */

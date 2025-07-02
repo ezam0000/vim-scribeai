@@ -1371,7 +1371,9 @@ export const ScribeAIIntegration = () => {
                     onClick={pauseRecording}
                     className={`${styles.actionButton} ${styles.pauseButton}`}
                   >
-                    <PauseIcon className={`mr-2 h-5 w-5 ${styles.pauseIcon}`} />
+                    <PauseIcon
+                      className={`${styles.iconMedium} ${styles.pauseIcon}`}
+                    />
                     Pause Recording
                   </Button>
                 ) : (
@@ -1380,7 +1382,7 @@ export const ScribeAIIntegration = () => {
                     className={`${styles.actionButton} ${styles.recordingButton}`}
                   >
                     <PlayIcon
-                      className={`mr-2 h-5 w-5 ${styles.recordingIcon}`}
+                      className={`${styles.iconMedium} ${styles.recordingIcon}`}
                     />
                     Resume Recording
                   </Button>
@@ -1388,10 +1390,9 @@ export const ScribeAIIntegration = () => {
 
                 <Button
                   onClick={stopRecording}
-                  variant="destructive"
-                  className={styles.actionButton}
+                  className={`${styles.actionButton} ${styles.stopButton}`}
                 >
-                  <StopCircleIcon className="mr-2 h-5 w-5" />
+                  <StopCircleIcon className={styles.iconMedium} />
                   Stop Recording
                 </Button>
               </div>
@@ -1401,7 +1402,9 @@ export const ScribeAIIntegration = () => {
                 disabled={uploading}
                 className={`${styles.actionButton} ${styles.recordingButton}`}
               >
-                <MicIcon className={`mr-2 h-5 w-5 ${styles.recordingIcon}`} />
+                <MicIcon
+                  className={`${styles.iconMedium} ${styles.recordingIcon}`}
+                />
                 Start Recording
               </Button>
             )}
@@ -1412,7 +1415,7 @@ export const ScribeAIIntegration = () => {
               disabled={uploading || isRecording}
               className={styles.uploadButton}
             >
-              <FileIcon className="mr-2 h-4 w-4" />
+              <FileIcon className={styles.iconSmall} />
               Upload Audio
             </Button>
 
@@ -1422,7 +1425,7 @@ export const ScribeAIIntegration = () => {
                 onClick={checkFormFields}
                 className={styles.debugButton}
               >
-                <BugIcon className="mr-2 h-4 w-4" />
+                <BugIcon className={styles.iconSmall} />
                 Check Form Fields
               </Button>
             )}
@@ -1435,7 +1438,7 @@ export const ScribeAIIntegration = () => {
           type="file"
           accept="audio/*"
           onChange={handleFileUpload}
-          className="hidden"
+          className={styles.hiddenInput}
         />
 
         {/* Status Display */}
@@ -1501,7 +1504,7 @@ export const ScribeAIIntegration = () => {
               onClick={applyParsedNote}
               className={styles.fullWidthButton}
             >
-              <CheckIcon className="mr-2 h-4 w-4" />
+              <CheckIcon className={styles.iconSmall} />
               Apply to Form
             </Button>
           )}
@@ -1512,7 +1515,7 @@ export const ScribeAIIntegration = () => {
               onClick={copyToClipboard}
               className={styles.fullWidthButton}
             >
-              <ClipboardIcon className="mr-2 h-4 w-4" />
+              <ClipboardIcon className={styles.iconSmall} />
               Copy Note
             </Button>
           )}
