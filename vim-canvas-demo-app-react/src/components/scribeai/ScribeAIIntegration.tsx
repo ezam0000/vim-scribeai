@@ -36,6 +36,7 @@ import { useVimEncounters } from "@/utils/vimNotesUtils";
 import { useVimOSEncounter } from "@/hooks/useEncounter";
 import { useVimOSPatient } from "@/hooks/usePatient";
 import { useKeyPhrases } from "@/hooks/useKeyPhrases";
+import styles from "./ScribeAIIntegration.module.css";
 
 // Constants for API interaction
 // const SCRIBEAI_WS_URL =
@@ -1357,41 +1358,29 @@ export const ScribeAIIntegration = () => {
   };
 
   return (
-    <div className="border rounded-md my-4 bg-gray-50 p-4">
+    <div className={styles.mainContainer}>
       <EntitySectionTitle title="ScribeAI Note Generator" />
       <EntitySectionContent>
         {/* Button layout - stack vertically for mobile/small view */}
-        <div className="space-y-3 mb-4">
-          <div className="space-y-2">
+        <div className={styles.buttonContainer}>
+          <div className={styles.buttonGroup}>
             {isRecording ? (
-              <div className="space-y-2">
+              <div className={styles.buttonGroup}>
                 {!isPaused ? (
                   <Button
                     onClick={pauseRecording}
-                    className="w-full flex items-center justify-center border-none text-lg py-4"
-                    style={{
-                      backgroundColor: "#ffc107",
-                      color: "white",
-                    }}
+                    className={`${styles.actionButton} ${styles.pauseButton}`}
                   >
-                    <PauseIcon
-                      className="mr-2 h-5 w-5"
-                      style={{ color: "white" }}
-                    />
+                    <PauseIcon className={`mr-2 h-5 w-5 ${styles.pauseIcon}`} />
                     Pause Recording
                   </Button>
                 ) : (
                   <Button
                     onClick={resumeRecording}
-                    className="w-full flex items-center justify-center border-none text-lg py-4"
-                    style={{
-                      backgroundColor: "#68e095",
-                      color: "#335df3",
-                    }}
+                    className={`${styles.actionButton} ${styles.recordingButton}`}
                   >
                     <PlayIcon
-                      className="mr-2 h-5 w-5"
-                      style={{ color: "#335df3" }}
+                      className={`mr-2 h-5 w-5 ${styles.recordingIcon}`}
                     />
                     Resume Recording
                   </Button>
@@ -1400,7 +1389,7 @@ export const ScribeAIIntegration = () => {
                 <Button
                   onClick={stopRecording}
                   variant="destructive"
-                  className="w-full flex items-center justify-center text-lg py-4"
+                  className={styles.actionButton}
                 >
                   <StopCircleIcon className="mr-2 h-5 w-5" />
                   Stop Recording
@@ -1410,16 +1399,9 @@ export const ScribeAIIntegration = () => {
               <Button
                 onClick={startRecording}
                 disabled={uploading}
-                className="w-full flex items-center justify-center border-none text-lg py-4"
-                style={{
-                  backgroundColor: "#68e095",
-                  color: "#335df3",
-                }}
+                className={`${styles.actionButton} ${styles.recordingButton}`}
               >
-                <MicIcon
-                  className="mr-2 h-5 w-5"
-                  style={{ color: "#335df3" }}
-                />
+                <MicIcon className={`mr-2 h-5 w-5 ${styles.recordingIcon}`} />
                 Start Recording
               </Button>
             )}
@@ -1428,7 +1410,7 @@ export const ScribeAIIntegration = () => {
               variant="outline"
               onClick={triggerFileUpload}
               disabled={uploading || isRecording}
-              className="w-full flex items-center justify-center py-3"
+              className={styles.uploadButton}
             >
               <FileIcon className="mr-2 h-4 w-4" />
               Upload Audio
@@ -1438,7 +1420,7 @@ export const ScribeAIIntegration = () => {
               <Button
                 variant="outline"
                 onClick={checkFormFields}
-                className="w-full flex items-center justify-center py-3"
+                className={styles.debugButton}
               >
                 <BugIcon className="mr-2 h-4 w-4" />
                 Check Form Fields
@@ -1457,29 +1439,27 @@ export const ScribeAIIntegration = () => {
         />
 
         {/* Status Display */}
-        <div className="flex items-center gap-2 mb-4 p-3 border rounded-md bg-gray-50 text-sm">
+        <div className={styles.statusDisplay}>
           {/* Status Icon */}
           {connected ? (
             uploading ? (
-              <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+              <div className={styles.statusIndicatorProcessing}></div>
             ) : (
-              <div className="w-3 h-3 rounded-full bg-green-500"></div>
+              <div className={styles.statusIndicatorConnected}></div>
             )
           ) : (
-            <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+            <div className={styles.statusIndicatorReady}></div>
           )}
-          <span className="text-sm font-medium">
+          <span className={styles.statusText}>
             {processingStatus || "Ready"}
           </span>
         </div>
 
         {/* Debug info */}
         {debugMode && formFieldsInfo && (
-          <div className="mb-4 p-2 bg-yellow-50 border border-yellow-200 rounded">
-            <h4 className="text-xs font-bold mb-1">Form Fields Debug Info:</h4>
-            <pre className="text-xs overflow-auto max-h-40">
-              {formFieldsInfo}
-            </pre>
+          <div className={styles.debugInfo}>
+            <h4 className={styles.debugTitle}>Form Fields Debug Info:</h4>
+            <pre className={styles.debugContent}>{formFieldsInfo}</pre>
           </div>
         )}
 
@@ -1487,7 +1467,7 @@ export const ScribeAIIntegration = () => {
         <EntityFieldContent>
           <EntityFieldTitle title="Transcript" />
           <Textarea
-            className="w-full min-h-[80px] text-sm"
+            className={styles.textareaField}
             value={transcript}
             onChange={(e) => handleTranscriptEdit(e.target.value)}
             placeholder="Transcript will appear here or type directly..."
@@ -1497,7 +1477,7 @@ export const ScribeAIIntegration = () => {
         <EntityFieldContent>
           <EntityFieldTitle title="Additional Notes" />
           <Textarea
-            className="w-full min-h-[50px] text-sm"
+            className={styles.textareaFieldSmall}
             value={customNotes}
             onChange={(e) => setCustomNotes(e.target.value)}
             placeholder="Enter any additional notes or context..."
@@ -1505,12 +1485,12 @@ export const ScribeAIIntegration = () => {
         </EntityFieldContent>
 
         {/* Action buttons */}
-        <div className="flex flex-col space-y-2 mb-4">
+        <div className={styles.actionButtonsContainer}>
           <Button
             variant="default"
             disabled={!transcript || uploading || isRecording}
             onClick={generateNote}
-            className="w-full"
+            className={styles.fullWidthButton}
           >
             Generate Note
           </Button>
@@ -1519,7 +1499,7 @@ export const ScribeAIIntegration = () => {
             <Button
               variant="outline"
               onClick={applyParsedNote}
-              className="w-full"
+              className={styles.fullWidthButton}
             >
               <CheckIcon className="mr-2 h-4 w-4" />
               Apply to Form
@@ -1530,7 +1510,7 @@ export const ScribeAIIntegration = () => {
             <Button
               variant="outline"
               onClick={copyToClipboard}
-              className="w-full"
+              className={styles.fullWidthButton}
             >
               <ClipboardIcon className="mr-2 h-4 w-4" />
               Copy Note
@@ -1542,22 +1522,17 @@ export const ScribeAIIntegration = () => {
           <Collapsible
             open={isNotePreviewOpen}
             onOpenChange={setIsNotePreviewOpen}
-            className="mt-4 border rounded-md overflow-hidden"
+            className={styles.notePreviewContainer}
           >
             <CollapsibleTrigger asChild>
-              <Button
-                variant="ghost"
-                className="flex w-full justify-between p-2"
-              >
+              <Button variant="ghost" className={styles.notePreviewTrigger}>
                 <span>Note Preview</span>
                 <span>{isNotePreviewOpen ? "▲" : "▼"}</span>
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <div className="p-3 bg-white">
-                <pre className="whitespace-pre-wrap text-xs">
-                  {generatedNote}
-                </pre>
+              <div className={styles.notePreviewContent}>
+                <pre className={styles.notePreviewText}>{generatedNote}</pre>
               </div>
             </CollapsibleContent>
           </Collapsible>
