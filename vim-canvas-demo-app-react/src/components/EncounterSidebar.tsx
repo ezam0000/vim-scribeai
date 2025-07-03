@@ -8,7 +8,15 @@ import {
   ArrowLeftIcon,
 } from "@radix-ui/react-icons";
 
-export const EncounterSidebar: React.FC = () => {
+interface EncounterSidebarProps {
+  isOpen: boolean;
+  onToggle: () => void;
+}
+
+export const EncounterSidebar: React.FC<EncounterSidebarProps> = ({
+  isOpen,
+  onToggle,
+}) => {
   const {
     encounters,
     selectedEncounter,
@@ -21,7 +29,6 @@ export const EncounterSidebar: React.FC = () => {
     clearSelection,
   } = useVimEncounters();
 
-  const [isOpen, setIsOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "details">("list");
   const [searchInput, setSearchInput] = useState(searchTerm);
 
@@ -58,7 +65,7 @@ export const EncounterSidebar: React.FC = () => {
 
   // Handle close modal
   const handleClose = () => {
-    setIsOpen(false);
+    onToggle();
     setViewMode("list");
     clearSelection();
   };
@@ -78,16 +85,6 @@ export const EncounterSidebar: React.FC = () => {
 
   return (
     <>
-      {/* Hamburger Menu Button - repositioned for small view */}
-      <Button
-        variant="outline"
-        size="sm"
-        className="fixed top-20 right-4 z-50 bg-white border-gray-300 shadow-md hover:bg-gray-50"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <HamburgerMenuIcon />
-      </Button>
-
       {/* Full Screen Modal for small view */}
       {isOpen && (
         <div className="fixed inset-0 bg-white z-50 flex flex-col">

@@ -1,7 +1,7 @@
 import orderSvg from "@/assets/order.svg";
 import referralSvg from "@/assets/referral.svg";
 import { EncounterContent } from "./components/encounter-content";
-import { EncounterSidebar } from "./components/EncounterSidebar";
+
 import { Navbar } from "./components/Navbar";
 import { OrderContent } from "./components/OrderContent";
 import { ReferralContent } from "./components/referral-content";
@@ -55,7 +55,6 @@ function App() {
   return (
     <ProtectedRoute>
       <div className="w-full top-0 left-0 pb-6">
-        <EncounterSidebar />
         <Navbar />
 
         {encounter && (
