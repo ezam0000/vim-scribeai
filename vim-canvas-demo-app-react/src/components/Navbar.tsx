@@ -11,7 +11,7 @@ import {
 } from "./ui/tooltip";
 import { useAuth } from "@/auth";
 import { useToast } from "@/hooks/use-toast";
-import scribeLogo from "@/assets/ScribeAI_SS1H.png";
+import scribeLogo from "@/assets/white_logo.png";
 
 export const Navbar = () => {
   const vimOs = useVimOsContext();

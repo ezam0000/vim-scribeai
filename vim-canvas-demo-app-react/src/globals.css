@@ -32,7 +32,7 @@
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     /* --scribe-blue: 226.71, 89.026%, 57.582%; */
-    --scribe-blue: 225.54, 96.996%, 97.061%;
+    --scribe-blue: 226 89% 58%;
     --scribe-green: 157.14, 96.634%, 45.223%;
     --scribe-white: 210 40% 98%;
   }
@@ -103,5 +103,5 @@ body {
 }
 
 .encounter-container {
-  padding: 2rem;
+  padding: 0rem;
 }
