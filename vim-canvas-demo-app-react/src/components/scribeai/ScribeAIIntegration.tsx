@@ -1359,65 +1359,62 @@ export const ScribeAIIntegration = () => {
 
   return (
     <div className={styles.mainContainer}>
-      <EntitySectionTitle title="ScribeAI Note Generator" />
       <EntitySectionContent>
         {/* Button layout - stack vertically for mobile/small view */}
         <div className={styles.buttonContainer}>
           <div className={styles.buttonGroup}>
-            {isRecording ? (
-              <div className={styles.buttonGroup}>
-                {!isPaused ? (
+            <div className={styles.recordingButtonRow}>
+              {isRecording ? (
+                <div className={styles.recordingControls}>
+                  {!isPaused ? (
+                    <Button
+                      onClick={pauseRecording}
+                      className={`${styles.compactButton} ${styles.pauseButton}`}
+                    >
+                      <PauseIcon className={styles.iconSmall} />
+                      Pause
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={resumeRecording}
+                      className={`${styles.compactButton} ${styles.recordingButton}`}
+                    >
+                      <PlayIcon className={styles.iconSmall} />
+                      Resume
+                    </Button>
+                  )}
+
                   <Button
-                    onClick={pauseRecording}
-                    className={`${styles.actionButton} ${styles.pauseButton}`}
+                    onClick={stopRecording}
+                    className={`${styles.compactButton} ${styles.stopButton}`}
                   >
-                    <PauseIcon
-                      className={`${styles.iconMedium} ${styles.pauseIcon}`}
-                    />
-                    Pause Recording
+                    <StopCircleIcon className={styles.iconSmall} />
+                    Stop
                   </Button>
-                ) : (
+                </div>
+              ) : (
+                <>
                   <Button
-                    onClick={resumeRecording}
+                    onClick={startRecording}
+                    disabled={uploading}
                     className={`${styles.actionButton} ${styles.recordingButton}`}
                   >
-                    <PlayIcon
+                    <MicIcon
                       className={`${styles.iconMedium} ${styles.recordingIcon}`}
                     />
-                    Resume Recording
+                    Start Recording
                   </Button>
-                )}
 
-                <Button
-                  onClick={stopRecording}
-                  className={`${styles.actionButton} ${styles.stopButton}`}
-                >
-                  <StopCircleIcon className={styles.iconMedium} />
-                  Stop Recording
-                </Button>
-              </div>
-            ) : (
-              <Button
-                onClick={startRecording}
-                disabled={uploading}
-                className={`${styles.actionButton} ${styles.recordingButton}`}
-              >
-                <MicIcon
-                  className={`${styles.iconMedium} ${styles.recordingIcon}`}
-                />
-                Start Recording
-              </Button>
-            )}
-
-            <Button
-              variant="outline"
-              onClick={triggerFileUpload}
-              disabled={uploading || isRecording}
-              className={styles.uploadButton}
-            >
-              <FileIcon className={styles.iconSmall} />
-              Upload Audio
-            </Button>
+                  <label
+                    htmlFor="audioFileInput"
+                    className={styles.uploadButtonLabel}
+                    onClick={triggerFileUpload}
+                  >
+                    <FileIcon className={styles.iconSmall} />
+                  </label>
+                </>
+              )}
+            </div>
 
             {debugMode && (
               <Button
@@ -1441,9 +1438,9 @@ export const ScribeAIIntegration = () => {
           className={styles.hiddenInput}
         />
 
-        {/* Status Display */}
+        {/* Status Display - Commented out for cleaner UI */}
+        {/* 
         <div className={styles.statusDisplay}>
-          {/* Status Icon */}
           {connected ? (
             uploading ? (
               <div className={styles.statusIndicatorProcessing}></div>
@@ -1457,6 +1454,7 @@ export const ScribeAIIntegration = () => {
             {processingStatus || "Ready"}
           </span>
         </div>
+        */}
 
         {/* Debug info */}
         {debugMode && formFieldsInfo && (
@@ -1502,7 +1500,7 @@ export const ScribeAIIntegration = () => {
             <Button
               variant="outline"
               onClick={applyParsedNote}
-              className={styles.fullWidthButton}
+              className={styles.applyToFormButton}
             >
               <CheckIcon className={styles.iconSmall} />
               Apply to Form
@@ -1513,7 +1511,7 @@ export const ScribeAIIntegration = () => {
             <Button
               variant="outline"
               onClick={copyToClipboard}
-              className={styles.fullWidthButton}
+              className={styles.copyNoteButton}
             >
               <ClipboardIcon className={styles.iconSmall} />
               Copy Note
