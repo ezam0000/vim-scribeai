@@ -82,15 +82,17 @@ export const ScribeAIIntegration = () => {
   );
   const [debugMode, _setDebugMode] = useState(false);
   const [formFieldsInfo, setFormFieldsInfo] = useState<string>("");
+  // Refs for managing intervals and state
+  const transcriptSaveIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSavedLengthRef = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const loadedEncounterRef = useRef<string | null>(null); // Track which encounter we've loaded transcript for
 
   // Database saving state
   const [currentVimEncounterId, setCurrentVimEncounterId] = useState<
     string | null
   >(null);
   const [accumulatedTranscript, setAccumulatedTranscript] = useState("");
-  const transcriptSaveIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const lastSavedLengthRef = useRef(0);
 
   // Get the singleton instance of the WebSocket
   const webSocket = getScribeAIWebSocket();
@@ -1047,12 +1049,25 @@ export const ScribeAIIntegration = () => {
     }
   };
 
-  // Load existing encounter transcript when component mounts or encounter changes
+  // Load existing transcript when encounter changes
   useEffect(() => {
+    if (!encounter?.identifiers?.ehrEncounterId) return;
+
     const loadExistingTranscript = async () => {
       if (!encounter?.identifiers?.ehrEncounterId) return;
 
       try {
+        // Only load if we haven't loaded this encounter's transcript recently
+        if (
+          loadedEncounterRef.current === encounter.identifiers.ehrEncounterId
+        ) {
+          console.log(
+            "Skipping load for already loaded encounter:",
+            encounter.identifiers.ehrEncounterId
+          );
+          return;
+        }
+
         // Try to find existing encounter for this VIM encounter ID
         const encounters = await getVimEncountersList({
           encounterId: encounter.identifiers.ehrEncounterId,
@@ -1061,14 +1076,34 @@ export const ScribeAIIntegration = () => {
         if (encounters && encounters.length > 0) {
           const existingEncounter = encounters[0]; // Get the most recent
           setCurrentVimEncounterId(existingEncounter.id);
+          loadedEncounterRef.current =
+            encounter?.identifiers?.ehrEncounterId || null; // Mark as loaded
 
-          if (existingEncounter.transcript_content) {
+          // Only load existing transcript if we don't already have one or we're not actively recording
+          if (
+            existingEncounter.transcript_content &&
+            (!transcript || transcript.trim() === "") &&
+            !isRecording &&
+            !isPaused
+          ) {
             setTranscript(existingEncounter.transcript_content);
             setAccumulatedTranscript(existingEncounter.transcript_content);
             lastSavedLengthRef.current =
               existingEncounter.transcript_content.length;
             console.log(
               "📄 Loaded existing transcript:",
+              existingEncounter.transcript_content.length,
+              "characters"
+            );
+          } else if (
+            existingEncounter.transcript_content &&
+            (isRecording || isPaused)
+          ) {
+            // If we're recording/paused, don't overwrite current transcript but update saved length
+            lastSavedLengthRef.current =
+              existingEncounter.transcript_content.length;
+            console.log(
+              "🔄 Recording in progress - kept current transcript, updated saved length to:",
               existingEncounter.transcript_content.length,
               "characters"
             );
@@ -1085,7 +1120,7 @@ export const ScribeAIIntegration = () => {
     };
 
     loadExistingTranscript();
-  }, [encounter?.identifiers?.ehrEncounterId, getVimEncountersList]);
+  }, [encounter?.identifiers?.ehrEncounterId]);
 
   // Start recording - reuse existing encounter if available
   const startRecording = async () => {
@@ -1111,6 +1146,8 @@ export const ScribeAIIntegration = () => {
 
         encounterId = vimEncounter.id;
         setCurrentVimEncounterId(encounterId);
+        loadedEncounterRef.current =
+          encounter?.identifiers?.ehrEncounterId || null; // Mark as loaded
         console.log("✅ Created new encounter:", encounterId);
       } else {
         console.log("♻️ Reusing existing encounter:", encounterId);
@@ -1274,6 +1311,8 @@ export const ScribeAIIntegration = () => {
 
         if (vimEncounter) {
           setCurrentVimEncounterId(vimEncounter.id);
+          loadedEncounterRef.current =
+            encounter?.identifiers?.ehrEncounterId || null; // Mark as loaded
         }
       }
 
