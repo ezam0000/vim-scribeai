@@ -13,7 +13,6 @@ import {
   StopCircleIcon,
 } from "lucide-react";
 import {
-  EntitySectionTitle,
   EntitySectionContent,
   EntityFieldContent,
   EntityFieldTitle,
@@ -75,10 +74,12 @@ export const ScribeAIIntegration = () => {
   const [customNotes, setCustomNotes] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [connected, setConnected] = useState(false);
+  const [_connected, setConnected] = useState(false);
   const [autoApply, _setAutoApply] = useState(false);
   const [isNotePreviewOpen, setIsNotePreviewOpen] = useState(false);
-  const [processingStatus, setProcessingStatus] = useState<string | null>(null);
+  const [_processingStatus, setProcessingStatus] = useState<string | null>(
+    null
+  );
   const [debugMode, _setDebugMode] = useState(false);
   const [formFieldsInfo, setFormFieldsInfo] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);

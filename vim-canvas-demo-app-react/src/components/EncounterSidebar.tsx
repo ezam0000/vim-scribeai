@@ -2,11 +2,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useVimEncounters, VimEncounter } from "@/hooks/useVimEncounters";
-import {
-  HamburgerMenuIcon,
-  Cross1Icon,
-  ArrowLeftIcon,
-} from "@radix-ui/react-icons";
+import { Cross1Icon, ArrowLeftIcon } from "@radix-ui/react-icons";
 
 interface EncounterSidebarProps {
   isOpen: boolean;
