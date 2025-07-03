@@ -288,7 +288,8 @@
 
 .textareaField {
   width: 100%;
-  min-height: 80px;
+  min-height: 300px !important;
+  height: 300px !important;
   font-size: 14px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;

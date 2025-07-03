@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useNoteFormContext } from "../encounter-content/form";
 import {
   MicIcon,
-  FileIcon,
+  UploadIcon,
   ClipboardIcon,
   CheckIcon,
   BugIcon,
@@ -1410,7 +1410,7 @@ export const ScribeAIIntegration = () => {
                     className={styles.uploadButtonLabel}
                     onClick={triggerFileUpload}
                   >
-                    <FileIcon className={styles.iconSmall} />
+                    <UploadIcon className={styles.iconSmall} />
                   </label>
                 </>
               )}
