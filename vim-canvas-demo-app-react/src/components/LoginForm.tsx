@@ -103,6 +103,18 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
             Sign up for ScribeAI
           </button>
         </p>
+        <p className="text-sm text-gray-600 mt-2">
+          Interested in bringing ScribeAI to your team?{" "}
+          <a
+            href="https://www.getscribeai.co/contact-us"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
+          >
+            Contact us here
+          </a>
+          .
+        </p>
       </div>
 
       {/* Signup Modal */}
