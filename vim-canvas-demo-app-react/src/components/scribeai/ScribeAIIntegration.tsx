@@ -11,6 +11,7 @@ import {
   PauseIcon,
   PlayIcon,
   StopCircleIcon,
+  Loader2,
 } from "lucide-react";
 import {
   EntitySectionContent,
@@ -80,6 +81,7 @@ export const ScribeAIIntegration = () => {
   const [_processingStatus, setProcessingStatus] = useState<string | null>(
     null
   );
+  const [isGeneratingNote, setIsGeneratingNote] = useState(false);
   const [debugMode, _setDebugMode] = useState(false);
   const [formFieldsInfo, setFormFieldsInfo] = useState<string>("");
   // Refs for managing intervals and state
@@ -556,6 +558,8 @@ export const ScribeAIIntegration = () => {
       return;
     }
 
+    setIsGeneratingNote(true);
+
     try {
       const jwtToken = SCRIBEAI_API_KEY;
 
@@ -806,6 +810,8 @@ export const ScribeAIIntegration = () => {
         description: errorMessage,
       });
       setProcessingStatus(null);
+    } finally {
+      setIsGeneratingNote(false);
     }
   };
 
@@ -866,16 +872,8 @@ export const ScribeAIIntegration = () => {
         );
       }
 
-      // Check if any fields are available to update
-      const availableFields = Object.keys(currentValues);
-      if (availableFields.length === 0) {
-        toast({
-          variant: "destructive",
-          title: "No form fields available",
-          description: "The form has no available fields to update.",
-        });
-        return;
-      }
+      // Skip the availableFields check as it may cause false negatives
+      // when the form context is still initializing
 
       // Verify that we have at least one field with content to update
       const hasContent =
@@ -962,18 +960,14 @@ export const ScribeAIIntegration = () => {
 
       // Try to update all fields
       for (const mapping of fieldMappings) {
-        if (mapping.field in currentValues && mapping.content) {
+        if (mapping.content && mapping.content.trim() !== "") {
           try {
-            // Update the field
-            setValue(
-              mapping.field as keyof typeof currentValues,
-              mapping.content,
-              {
-                shouldDirty: true,
-                shouldValidate: true,
-                shouldTouch: true,
-              }
-            );
+            // Update the field directly - the form context should handle field existence
+            setValue(mapping.field as any, mapping.content, {
+              shouldDirty: true,
+              shouldValidate: true,
+              shouldTouch: true,
+            });
 
             // Add to list of updated fields
             updatedFields.push(mapping.label);
@@ -1529,11 +1523,20 @@ export const ScribeAIIntegration = () => {
         <div className={styles.actionButtonsContainer}>
           <Button
             variant="default"
-            disabled={!transcript || uploading || isRecording}
+            disabled={
+              !transcript || uploading || isRecording || isGeneratingNote
+            }
             onClick={generateNote}
             className={styles.fullWidthButton}
           >
-            Generate Note
+            {isGeneratingNote ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              "Generate Note"
+            )}
           </Button>
 
           {parsedNote && (
